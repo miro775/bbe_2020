@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ ===========================================================================
+ BBE_os_unix
+ ===========================================================================
+
+ Description: 	Maven pom.xml for BBE_os_unix project
+				Contains unix scripts and resources
+
+ ===========================================================================
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>bbe-os-unix</artifactId>
+	<packaging>jar</packaging>
+	<name>BBE_os_unix</name>
+	<properties>
+		<osunix.target>${project.parent.relativePath}/../target/os_unix</osunix.target>
+	</properties>
+	<parent>
+		<groupId>de.telekom.bdmp</groupId>
+		<artifactId>bbe-parent</artifactId>
+		<version>dev-bld-current-SNAPSHOT</version>
+		<relativePath>../BBE_parent</relativePath>
+	</parent>
+	<build>	
+		<directory>target</directory>
+		<outputDirectory>target/main</outputDirectory>
+		<testOutputDirectory>target/test</testOutputDirectory>
+		<resources>
+			<resource>
+				<directory>src/main/os_unix</directory>
+				<includes>
+					<include>**/*.sh</include>
+					<include>**/*.template</include>
+				</includes>
+				<targetPath>../../target/main/os_unix</targetPath>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>**/*.template</include>
+				</includes>
+				<targetPath>../../target/main/os_unix</targetPath>
+				<filtering>false</filtering>
+			</resource>
+		</resources>
+		<testResources>
+			<testResource>
+				<directory>src/test/os_unix</directory>
+				<includes>
+					<include>**/*.sh</include>
+					<include>**/*.template</include>
+				</includes>
+				<targetPath>../../target/test/os_unix</targetPath>
+				<filtering>false</filtering>
+			</testResource>
+			<testResource>
+				<directory>src/test/resources</directory>
+				<includes>
+					<include>**/*.template</include>
+				</includes>
+				<targetPath>../../target/test/os_unix</targetPath>
+				<filtering>false</filtering>
+			</testResource>
+		</testResources>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<classesDirectory>target/main</classesDirectory>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>	
+</project>

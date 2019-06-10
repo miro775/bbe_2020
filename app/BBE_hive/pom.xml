@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ ===========================================================================
+ BBE_hive
+ ===========================================================================
+
+ Description: 	Maven pom.xml for BBE_hive project
+				Contains DML scripts for Hive tables
+
+ ===========================================================================
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>bbe-hive</artifactId>
+	<packaging>jar</packaging>
+	<name>BBE_hive</name>
+	<properties>
+		<hive.target>${project.parent.relativePath}/../target/hive</hive.target>
+	</properties>
+	<parent>
+		<groupId>de.telekom.bdmp</groupId>
+		<artifactId>bbe-parent</artifactId>
+		<version>dev-bld-current-SNAPSHOT</version>
+		<relativePath>../BBE_parent</relativePath>
+	</parent>
+	<build>	
+		<directory>target</directory>
+		<outputDirectory>target/main</outputDirectory>
+		<testOutputDirectory>target/test</testOutputDirectory>
+		<resources>
+			<resource>
+				<directory>src/main/hive</directory>
+				<includes>
+					<include>**/*.hql</include>
+					<include>**/*.avsc</include>
+					<include>**/*.cmi</include>
+				</includes>
+				<targetPath>../../target/main/hive</targetPath>
+				<filtering>false</filtering>
+			</resource>
+		</resources>
+		<testResources>
+			<testResource>
+				<directory>src/test/hive</directory>
+				<includes>
+					<include>**/*.hql</include>
+				</includes>
+				<targetPath>../../target/test/hive</targetPath>
+				<filtering>false</filtering>
+			</testResource>
+			<testResource>
+				<directory>src/test/resources</directory>
+				<includes>
+				</includes>
+				<targetPath>../../target/test/hive</targetPath>
+				<filtering>false</filtering>
+			</testResource>
+		</testResources>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<classesDirectory>target/main</classesDirectory>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>	
+</project>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ ===========================================================================
+ BBE_oozie
+ ===========================================================================
+
+ Description: 	Maven pom.xml for BBE_oozie project 
+				Includes Oozie workflows
+
+ ===========================================================================
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>de.telekom.bdmp</groupId>
+	<artifactId>bbe-oozie</artifactId>
+	<version>dev-bld-currbbe-SNAPSHOT</version>
+	<packaging>jar</packaging>
+	<name>BBE_oozie</name>
+	<properties>
+		<oozie.target>${project.parent.relativePath}/../target/oozie</oozie.target>
+	</properties>
+	<parent>
+		<groupId>de.telekom.bdmp</groupId>
+		<artifactId>bbe-parent</artifactId>
+		<version>dev-bld-currbbe-SNAPSHOT</version>
+		<relativePath>../BBE_parent</relativePath>
+	</parent>
+	<build>
+		<directory>target</directory>
+		<outputDirectory>target/main</outputDirectory>
+		<testOutputDirectory>target/test</testOutputDirectory>
+		<resources>
+			<resource>
+				<directory>src/main/oozie</directory>
+				<includes>
+					<include>**/*.xml</include>
+					<include>**/*.properties</include>
+				</includes>
+				<targetPath>../../target/main/oozie</targetPath>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+				</includes>
+				<targetPath>../../target/main/oozie</targetPath>
+				<filtering>false</filtering>
+			</resource>
+		</resources>
+		<testResources>
+			<testResource>
+				<directory>src/test/oozie</directory>
+				<includes>
+					<include>**/*.xml</include>
+					<include>**/*.properties</include>
+				</includes>
+				<targetPath>../../target/test/oozie</targetPath>
+				<filtering>false</filtering>
+			</testResource>
+			<testResource>
+				<directory>src/test/resources</directory>
+				<includes>
+				</includes>
+				<targetPath>../../target/test/oozie</targetPath>
+				<filtering>false</filtering>
+			</testResource>
+		</testResources>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<classesDirectory>target/main</classesDirectory>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>

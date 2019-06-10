@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+ =========================================================================== 
+ BBE_parent 
+ =========================================================================== 
+ 
+ Description: 	Maven pom.xml for BBE_parent project 
+				Includes all modules and acts as build master
+ 
+ =========================================================================== 
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>de.telekom.bdmp</groupId>
+    <artifactId>bbe-parent</artifactId>
+    <version>dev-bld-current-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>BBE_parent</name>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.build.timestamp.format>MM.dd.HHmm</maven.build.timestamp.format>
+        <description>BBE Project</description>
+        <author>$Author$</author>
+        <author_email>RodenhausenR@telekom.de</author_email>
+        <master.target>../${project.parent.relativePath}/../target</master.target>
+        <artifactory.server>${env.BDMP_ARTIFACTORY_SERVER}</artifactory.server>
+        <releaseRepoUrl>https://${artifactory.server}/artifactory/libs-release-local</releaseRepoUrl>
+        <snapshotRepoUrl>https://${artifactory.server}/artifactory/libs-snapshot-local</snapshotRepoUrl>
+        <deployRepoUrl>${releaseRepoUrl}</deployRepoUrl>
+        <isRelease>true</isRelease>
+        <releaseRepoId>central</releaseRepoId>
+        <snapshotRepoId>snapshots</snapshotRepoId>
+        <deployRepoId>${releaseRepoId}</deployRepoId>
+    </properties>
+    <modules>
+        <!-- <module>../BBE_hbase</module> -->
+        <module>../BBE_hive</module>
+        <module>../BBE_os_unix</module>
+        <module>../BBE_python</module>
+        <!-- <module>../BBE_udf_scripts</module> -->
+        <module>../BBE_package</module>
+    </modules>
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.0.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>1.8</version>
+                    <executions>
+                        <execution>
+                            <phase>compile</phase>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                            <configuration>
+                                <target>
+                                    <property environment="env"/>
+                                    <echoproperties/>
+                                </target>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+    <repositories>
+        <repository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>central</id>
+            <name>libs-release</name>
+            <url>https://${artifactory.server}/artifactory/libs-release</url>
+        </repository>
+        <repository>
+            <snapshots/>
+            <id>snapshots</id>
+            <name>libs-snapshot</name>
+            <url>https://${artifactory.server}/artifactory/libs-snapshot</url>
+        </repository>
+    </repositories>
+    <distributionManagement>
+        <snapshotRepository>
+            <id>${snapshotRepoId}</id>
+            <name>Snapshots Repo</name>
+            <url>${snapshotRepoUrl}</url>
+        </snapshotRepository>
+        <repository>
+            <id>${releaseRepoId}</id>
+            <name>Release Repo</name>
+            <url>${releaseRepoUrl}</url>
+        </repository>
+    </distributionManagement>
+    <profiles>
+        <profile>
+            <id>snapshot-deploy</id>
+            <activation>
+                <property>
+                    <name>!env.DEPENDENCY_PREFIX</name>
+                </property>
+            </activation>
+            <properties>
+                <dependeny.prefix></dependeny.prefix>
+            </properties>
+        </profile>
+        <profile>
+            <id>environment-build</id>
+            <activation>
+                <property>
+                    <name>env.DEPENDENCY_PREFIX</name>
+                </property>
+            </activation>
+            <properties>
+                <dependeny.prefix>${env.DEPENDENCY_PREFIX}</dependeny.prefix>
+            </properties>
+        </profile>
+    </profiles>
+</project>
