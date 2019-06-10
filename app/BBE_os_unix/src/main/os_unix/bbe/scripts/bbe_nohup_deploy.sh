@@ -1,8 +1,8 @@
 #!/bin/bash
 
 STARTTIME=`date +'%Y%m%d_%H%M%S'`
-LOGDIRECTORY=/var/log/bdmp/bbe_data_${BDMP_ENV}_deploy_${STARTTIME}
-LOGFILE=${LOGDIRECTORY}/bbe_data_${STARTTIME}.log
+LOGDIRECTORY=/var/log/bdmp/bbe_${BDMP_ENV}_deploy_${STARTTIME}
+LOGFILE=${LOGDIRECTORY}/bbe_${STARTTIME}.log
 CURRENT_VERSION=$1
 TARGET_VERSION=$2
 
