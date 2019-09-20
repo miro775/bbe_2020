@@ -31,7 +31,7 @@ LOGFILE_HDFS=${LOGDIRECTORY}/${BDMP_STREAM_LOWER}_hdfs_${STARTTIME}.log
 LOGFILE_SCHEMA2HDFS=${LOGDIRECTORY}/${BDMP_STREAM_LOWER}_schema2hdfs_${STARTTIME}.log
 LOGFILE_HQL=${LOGDIRECTORY}/${BDMP_STREAM_LOWER}_hql_${STARTTIME}.log
 LOGFILE_HBASE=${LOGDIRECTORY}/${BDMP_STREAM_LOWER}_hbase_${STARTTIME}.log
-LOGFILE_UDFSCRIPT2HDFS=${LOGDIRECTORY}/${BDMP_STREAM_LOWER}_udfscript2hdfs_${STARTTIME}.log
+# LOGFILE_UDFSCRIPT2HDFS=${LOGDIRECTORY}/${BDMP_STREAM_LOWER}_udfscript2hdfs_${STARTTIME}.log
  
 mkdir -p ${LOGDIRECTORY}
  
@@ -47,8 +47,8 @@ python3 ${BDMP_PYTHON}/de/telekom/bdmp/bdmf/install/deploy.py -w hdfs -S BBE_DAT
 EXITCODE=${PIPESTATUS[0]}; if [ ${EXITCODE} -ne 0 ]; then echo Exiting hdfs with exitcode ${EXITCODE}; exit ${EXITCODE}; fi
 python3 ${BDMP_PYTHON}/de/telekom/bdmp/bdmf/install/deploy.py -w avroschema2hdfs -S BBE_DATA 2>&1 | tee -a ${LOGFILE} ${LOGFILE_SCHEMA2HDFS}
 EXITCODE=${PIPESTATUS[0]}; if [ ${EXITCODE} -ne 0 ]; then echo Exiting avroschema2hdfs with exitcode ${EXITCODE}; exit ${EXITCODE}; fi
-python3 ${BDMP_PYTHON}/de/telekom/bdmp/bdmf/install/deploy.py -w udfscript2hdfs -S $BDMP_STREAM 2>&1 | tee -a ${LOGFILE} ${LOGFILE_UDFSCRIPT2HDFS}
-EXITCODE=${PIPESTATUS[0]}; if [ ${EXITCODE} -ne 0 ]; then echo Exiting udfscript2hdfs with exitcode ${EXITCODE}; exit ${EXITCODE}; fi
+# python3 ${BDMP_PYTHON}/de/telekom/bdmp/bdmf/install/deploy.py -w udfscript2hdfs -S $BDMP_STREAM 2>&1 | tee -a ${LOGFILE} ${LOGFILE_UDFSCRIPT2HDFS}
+# EXITCODE=${PIPESTATUS[0]}; if [ ${EXITCODE} -ne 0 ]; then echo Exiting udfscript2hdfs with exitcode ${EXITCODE}; exit ${EXITCODE}; fi
 
 
 

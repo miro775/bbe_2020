@@ -42,7 +42,7 @@ export BBE_OOZIE="${BDMP_APP}/oozie/bbe"
 export BBE_OOZIE_WORKFLOW="${BBE_OOZIE}/workflow"
 export BBE_OS_UNIX="${BDMP_APP}/os_unix/bbe"
 export BBE_SCRIPTS="${BBE_OS_UNIX}/scripts"
-export BBE_TRANSFORM_SCRIPTS="${BDMP_APP}/udf_scripts/bbe"
+# export BBE_TRANSFORM_SCRIPTS="${BDMP_APP}/udf_scripts/bbe"
 
 # ####################
 # Functions 
@@ -65,7 +65,7 @@ export BBE_HDFS_APP_HIVE_SCHEMA_MANAGED="${BBE_HDFS_APP_HIVE}/schema/managed"
 export BBE_HDFS_APP_OOZIE="${BDMP_HDFS_APP}/oozie/bbe"
 export BBE_HDFS_APP_OOZIE_WORKFLOW="${BBE_HDFS_APP_OOZIE}/workflow"
 export BBE_HDFS_APP_TMP="${BDMP_HDFS_APP}/tmp"
-export BBE_HDFS_APP_HIVE_UDF="${BBE_HDFS_APP_HIVE}/udf"
+# export BBE_HDFS_APP_HIVE_UDF="${BBE_HDFS_APP_HIVE}/udf"
 
 # ####################
 # Java 

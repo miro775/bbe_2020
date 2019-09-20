@@ -59,11 +59,6 @@
 				<targetPath>${app.directory}</targetPath>
 				<filtering>false</filtering>
 			</resource>
-			<resource>
-				<directory>../BBE_udf_scripts/target/main</directory>
-				<targetPath>${app.directory}</targetPath>
-				<filtering>false</filtering>
-			</resource>
 		</resources>
 		<plugins>
 			<plugin>
