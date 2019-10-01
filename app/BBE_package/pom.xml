@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ ===========================================================================
+ BBE_package
+ ===========================================================================
+
+ Description: 	Maven pom.xml for BBE_package project
+				Contains pom.xml for uber jar
+
+ ===========================================================================
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>bbe-package</artifactId>
+	<packaging>jar</packaging>
+	<name>BBE_package</name>
+	<properties>
+		<package.target>${project.parent.relativePath}/../target/deploy</package.target>
+		<package.directory>${basedir}/target/main</package.directory>
+		<dependency.directory>${package.directory}/3party/java</dependency.directory>
+		<app.directory>${package.directory}/app</app.directory>
+		<lib.directory>${app.directory}/java/bbe/lib</lib.directory>
+	</properties>
+	<parent>
+		<groupId>de.telekom.bdmp</groupId>
+		<artifactId>bbe-parent</artifactId>
+		<version>dev-bld-current-SNAPSHOT</version>
+		<relativePath>../BBE_parent</relativePath>
+	</parent>
+		<dependencies>
+		<dependency>
+			<groupId>de.telekom.bdmp</groupId>
+			<artifactId>system-predeploy</artifactId>
+			<version>0.0.1</version>
+		</dependency>
+	</dependencies>
+	<build>	
+		<directory>target</directory>
+		<outputDirectory>target/main</outputDirectory>
+		<testOutputDirectory>target/test</testOutputDirectory>
+		<resources>
+			<resource>
+				<directory>../BBE_hbase/target/main</directory>
+				<targetPath>${app.directory}</targetPath>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>../BBE_hive/target/main</directory>
+				<targetPath>${app.directory}</targetPath>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>../BBE_os_unix/target/main</directory>
+				<targetPath>${app.directory}</targetPath>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>../BBE_python/target/main</directory>
+				<targetPath>${app.directory}</targetPath>
+				<filtering>false</filtering>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<id>unpack</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>de.telekom.bdmp</groupId>
+									<artifactId>system-predeploy</artifactId>
+									<type>jar</type>
+									<overWrite>false</overWrite>
+									<outputDirectory>target/main/</outputDirectory>
+									<includes>**</includes>
+									<excludes>META-INF/</excludes>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<classesDirectory>target/main</classesDirectory>
+					<archive>
+						<manifest>
+							<mainClass>de.telekom.bdmp.system.predeploy.Predeploy</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>	
+</project>

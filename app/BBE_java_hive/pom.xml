@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <!-- 
+     =========================================================================== 
+     BBE_java_hive 
+     =========================================================================== 
+     Description:	Maven pom.xml for BBE_java_hive project Includes UDFs 
+     =========================================================================== 
+    -->
+    <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    	<modelVersion>4.0.0</modelVersion>
+    	<artifactId>bbe-java-hive</artifactId>
+    	<packaging>jar</packaging>
+    	<name>BBE_java_hive</name>
+    	<parent>
+    		<groupId>de.telekom.bdmp</groupId>
+    		<artifactId>bbe-parent</artifactId>
+    		<version>dev-bld-currbbe-SNAPSHOT</version>
+    		<relativePath>../BBE_parent</relativePath>
+    	</parent>
+    	<build>
+    		<plugins>
+    			<plugin>
+    				<artifactId>maven-dependency-plugin</artifactId>
+    				<inherited>false</inherited>
+    				<executions>
+    					<execution>
+    						<id>copy-dependencies</id>
+    					</execution>
+    				</executions>
+    			</plugin>
+    		</plugins>
+    	</build>
+    	<dependencies>
+    		<dependency>
+    			<groupId>org.apache.hive</groupId>
+    			<artifactId>hive-exec</artifactId>
+    			<version>1.1.0-cdh5.7.4</version>
+    		</dependency>
+    	</dependencies>
+    </project>
