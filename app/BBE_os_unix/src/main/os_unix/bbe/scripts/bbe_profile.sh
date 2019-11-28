@@ -73,4 +73,4 @@ export BBE_HDFS_APP_TMP="${BDMP_HDFS_APP}/tmp"
 
 export BBE_JARS="${BBE_JAVA}/lib"
 export BBE_JAVA_RESOURCES="${BBE_JAVA}/resources"
-export BBE_CLASSPATH=`get_bbe_classpath`
+# export BBE_CLASSPATH=`get_bbe_classpath` # disabled 28.11.2019, miro
