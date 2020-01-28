@@ -28,7 +28,7 @@ df3.show()
 
 jsonschema0 = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
 
-df4 = df3.withColumn('jsonstruct', from_json(col('jsonstruct'), jsonschema0))
+df4 = df3.withColumn('jsonstruct', from_json(col('jsonstruct'), jsonschema0)).select('jsonstruct.*')
 df4.show()
 
 
