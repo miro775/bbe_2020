@@ -6,6 +6,8 @@ from datetime import datetime
 
 ts = datetime.now().strftime('%Y%m%d%H%M')
 
+#coment1
+
 spark = SparkSession \
     .builder \
     .appName("miro_bbe_session_{ts}") \
@@ -23,8 +25,8 @@ df1 = spark.sql("select * from db_d170_bbe_iws_pwr.IL_TMagic_jsoninput_ET")
 df3 = df1.filter((df1['messagetype'] == 'DigiOSS - FibreOnLocation') & (df1['acl_id'] == '100053607'))
 df3.show()
 
-#df_jsonschema = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct))
-#df_jsonschema.printSchema()
+df_jsonschema = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct))
+df_jsonschema.printSchema()
 
 jsonschema0 = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
 
