@@ -19,26 +19,16 @@ spark = SparkSession \
     .config("spark.executor.cores", "1") \
     .config("spark.executor.instances", "2") \
     .getOrCreate()
-
+# read data from table to DataFrame "df1"
 df1 = spark.sql("select * from db_d170_bbe_iws_pwr.IL_TMagic_jsoninput_ET")
 
-
-# filter , where 1 record  FibreOnLocation'
-#df3 = df1.filter((df1['messagetype'] == 'DigiOSS - FibreOnLocation') & (df1['acl_id'] == '100053607'))
-
+# filter "FoL" only messages
 df3 = df1.filter((df1['messagetype'] == 'DigiOSS - FibreOnLocation')  & (df1['Messageversion'] == '1'))
-#df3.show()
 
-#  get schema from json column 'jsonstruct'
+#  get schema from json-column 'jsonstruct'
 jsonschema_FoL = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
 
-# parse json column
-#Returns a new DataFrame by adding a column or replacing the existing column that has the same name.
-#The column expression must be an expression over this DataFrame; attempting to add a column from some other dataframe will raise an error.
-
-#df4jsn = df3.withColumn('json_data', from_json(col('jsonstruct'), jsonschema_FoL))
-
-
+# new dataframe , select columns for target table , using values from json....
 df4jsn = df3.withColumn('json_data', from_json(col('jsonstruct'), jsonschema_FoL))\
     .select(
     col('acl_id'),
@@ -66,14 +56,11 @@ df4jsn = df3.withColumn('json_data', from_json(col('jsonstruct'), jsonschema_FoL
     col('json_data.ge'),
     col('json_data.sl'))
 
-    # do not use show: .show()
 
 #insert dataframe into table
 df4jsn.write.insertInto('db_d170_bbe_in_iws.il_tmagic_fiberOnLocation_demo2_mt', overwrite=True)
-#df4jsn.show()
 
-
-# test, read and show data from table
+# test , just for demonstration, read and show data from target table
 df_FoL_demo0 = spark.table('db_d170_bbe_in_iws.il_tmagic_fiberOnLocation_demo2_mt')
 df_FoL_demo0.show()
 
