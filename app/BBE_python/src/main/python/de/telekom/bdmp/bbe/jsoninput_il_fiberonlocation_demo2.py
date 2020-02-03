@@ -43,8 +43,7 @@ df4jsn = df3.withColumn('json_data', from_json(col('jsonstruct'), jsonschema_FoL
     .select(
     col('acl_id'),
 	col('acl_dop'),
-    #from_unixtime(to_timestamp(col('acl_dop'),'yyyyMMddHHmmss')).alias('acl_dop_ISO'),
-    from_unixtime(col('acl_dop')).cast('timestamp').alias('acl_dop_ISO'),
+    to_timestamp(col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
 	col('acl_dop_yyyymm'),
 	col('messagetype'),
 	col('messageversion'),
