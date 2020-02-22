@@ -26,15 +26,15 @@ df1 = spark.sql("select * from db_d170_bbe_in_iws.il_tmagic_json_test_vvmArea_ET
 df3 = df1.filter((df1['messagetype'] == 'DigiOSS - vvmArea')  & (df1['Messageversion'] == '1'))
 
 #  get schema from json-column 'jsonstruct'
-jsonschema_FoL = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
+jsonschema_vvm = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
 
 # new dataframe , select columns for target table , using values from json....
-df4jsn = df3.withColumn('json_data', from_json(col('jsonstruct'), jsonschema_FoL))\
+df4jsn = df3.withColumn('json_data', from_json(col('jsonstruct'), jsonschema_vvm))\
     .select(
     col('acl_id'),
     to_timestamp(col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
-    col('json_data.name'),
-    col('json_data.number'),
+    col('json_data.number').alias('vvmareaNumber') ,
+    col('json_data.name').alias('vvmareaName') ,
     from_unixtime(col('json_data.creationDate')[0:10]).alias('creationDate_ISO') ,
     from_unixtime(col('json_data.modificationDate')[0:10]).alias('modificationDate_ISO'),
     col('json_data.areaType'),
