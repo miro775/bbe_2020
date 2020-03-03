@@ -6,8 +6,6 @@ from de.telekom.bdmp.pyfw.etl_framework.sparkapp import SparkApp
 from de.telekom.bdmp.pyfw.etl_framework.tree_etl import IProcessNode, TreeEtlRunner
 from de.telekom.bdmp.bbe.etl_processes.al2cl.process import TMagicToClProcess
 
-#test only
-from de.telekom.bdmp.bdmf.base.environment import Environment
 
 class TMagicToClProcessNode(IProcessNode):
     pass

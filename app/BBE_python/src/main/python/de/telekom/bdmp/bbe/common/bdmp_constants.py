@@ -8,5 +8,6 @@ HDFS_BBE_PATH = '/bdmp/hive/{0}/'.format(my_bdmp_env_without_underscore)
 if my_bdmp_env != "":
     my_bdmp_env = "_" + my_bdmp_env
 
-DB_BBE_CORE = 'db{0}_bbe_core'.format(my_bdmp_env)
-DB_BBE_BASE = 'db{0}_bbe_base'.format(my_bdmp_env)
+DB_BBE_IN = 'db{0}_bbe_in_iws'.format(my_bdmp_env)
+DB_BBE_CORE = 'db{0}_bbe_core_iws'.format(my_bdmp_env)
+DB_BBE_BASE = 'db{0}_bbe_base_iws'.format(my_bdmp_env)
