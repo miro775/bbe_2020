@@ -11,6 +11,8 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import *
 from datetime import datetime
 
+
+
 class TMagicToClProcess(IProcess):
     """
     Bestand process
@@ -35,10 +37,10 @@ class TMagicToClProcess(IProcess):
         df_creator = DfCreator(self.spark_app.get_spark())
 
         # DWHM
-        df_input_vvmarea = df_creator.get_df(database=DB_BBE_BASE,  table='IL_TMagic_jsoninput_ET')
+        df_input_vvmarea = df_creator.get_df(database=DB_BBE_IN,  table='IL_TMagic_jsoninput_ET')
         #df_al_d_dwhm_push_ps = df_creator.get_df(database=DB_BBE_BASE,  table='al_d_dwhm_push_ps_mt')
 
-        return [df_input_vvmarea]
+        return df_input_vvmarea
 
     def logic(self, in_dfs):
         """
@@ -51,14 +53,15 @@ class TMagicToClProcess(IProcess):
         df3 = df_input_vvmarea.filter((df_input_vvmarea['messagetype'] == 'DigiOSS - vvmArea') & (df_input_vvmarea['Messageversion'] == '1'))
 
         #  get schema from json-column 'jsonstruct'
-        #self.spark_app.get_spark()
 
-        jsonschema_vvm = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
+        #jsonschema_vvm = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
+
+        jsonschema_vvm = self.spark_app.get_spark().read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
 
         # new dataframe , select columns for target table , using values from json....
         df4jsn = df3.withColumn('json_data', from_json(col('jsonstruct'), jsonschema_vvm)) \
             .select(
-            col('acl_id'),
+            col('acl_id').alias('acl_id_int'),
             to_timestamp(col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
             col('json_data.number').alias('vvmareaNumber'),
             col('json_data.name').alias('vvmareaName'),
@@ -78,7 +81,7 @@ class TMagicToClProcess(IProcess):
         #df_cl_d_dwhm_push_ps = common_transform.trans_al2cl(df_al_d_dwhm_push_ps)
 
         #return [df_cl_d_dwhm_bestand_ps, df_cl_d_dwhm_push_ps]
-        return[df4jsn]
+        return  df4jsn
 
     def handle_output_dfs(self, out_dfs):
         """
@@ -87,13 +90,11 @@ class TMagicToClProcess(IProcess):
 
         spark_io = util.ISparkIO.get_obj(self.spark_app.get_spark())
 
-
-
         # Read inputs
         df_cl_tmagic_vvm_area = out_dfs
 
-        spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, 'cl_tmagic_vvm_area_mt', overwrite=True)
+        spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, 'cl_tmagic_l0_vvmarea_mt', overwrite=True)
         #spark_io.df2hive(df_cl_d_dwhm_push_ps, DB_BBE_CORE, 'cl_d_dwhm_push_ps_mt', overwrite=True)
 
-        return [df_cl_tmagic_vvm_area]
+        return df_cl_tmagic_vvm_area
 
