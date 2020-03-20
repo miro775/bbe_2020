@@ -76,9 +76,11 @@ class TMagicToClProcess(IProcess):
             from_unixtime(col('json_data.plannedFrom')[0:10]).alias('plannedFrom_ISO'),
             from_unixtime(col('json_data.plannedTo')[0:10]).alias('plannedTo_ISO'),
 
-            lit(None).cast(StringType()).alias('bdmp_loadstamp'),
-            lit(None).cast(StringType()).alias('bdmp_id'),
-            lit(None).cast(StringType()).alias('bdmp_area_id')
+            col('bdmp_loadstamp'),
+            col('bdmp_id'),
+            col('bdmp_area_id')
+
+
         )
 
         #common_transform = CommonTransform()
