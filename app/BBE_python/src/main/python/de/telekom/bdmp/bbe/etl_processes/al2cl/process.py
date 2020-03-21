@@ -140,7 +140,7 @@ class TMagicToClProcess(IProcess):
         #spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, 'cl_f_vvmarea_mt', overwrite=True)
         # if dataframe doesn't have data - skip insert to table, no new data=no insert
         if df_cl_tmagic_vvm_area :
-          spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, self._out_table_name , overwrite=True)
+          spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, self._out_table_name , overwrite=False)
 
         Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
                                            self._in_table_name, self._max_acl_dop_val)
