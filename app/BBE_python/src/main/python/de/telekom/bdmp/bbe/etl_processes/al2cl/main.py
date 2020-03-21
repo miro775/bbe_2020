@@ -19,6 +19,7 @@ if __name__ == '__main__':
     tmagic_process_node = TMagicToClProcessNode(tmagic_to_cl_process)
 
     tree_etl_runner = TreeEtlRunner([tmagic_process_node])
-    tree_etl_runner.run()
+    if tree_etl_runner.run() == 3:
+        raise Exception('RUN FAILED')
 
     spark_app.stop()

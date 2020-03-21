@@ -51,6 +51,8 @@ class TMagicToClProcess(IProcess):
         #df_input_vvmarea = df_creator.get_df(database=DB_BBE_BASE, table='al_gigabit_message_mt')
         df_input_vvmarea = df_creator.get_df(self._db_in,  self._in_table_name)
 
+        self.log.debug('### Preparation of input data frames of process \'{0}\' started'.format(self.name))
+
 
         return df_input_vvmarea
 
@@ -68,21 +70,30 @@ class TMagicToClProcess(IProcess):
         # compute max value of acl_dop - needed for next transformation
         self._max_acl_dop_val = df_input_vvmarea.agg(F.max(df_input_vvmarea[tracked_col]).alias('max')).collect()[0][0]
 
-
+        self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'.\
+                       format(self.name,current_tracked_value,self._max_acl_dop_val))
 
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
-        df3 = df_input_vvmarea.filter((df_input_vvmarea['messagetype'] == 'DigiOSS - vvmArea') \
+        df_al = df_input_vvmarea.filter((df_input_vvmarea['messagetype'] == 'DigiOSS - vvmArea') \
                                       & (df_input_vvmarea['Messageversion'] == '1') \
                                       & (df_input_vvmarea[tracked_col] > current_tracked_value))
+
+        # IF DataFrame is empty , do not parse Json , no new data
+        # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
+        if df_al.rdd.isEmpty():
+            self.log.debug('### logic of process \'{0}\' , input-dataFrame is empty, no new data'.format(self.name))
+            return None
+
 
         #  get schema from json-column 'jsonstruct'
 
         #jsonschema_vvm = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
 
-        jsonschema_vvm = self.spark_app.get_spark().read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
+        jsonschema_vvm = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
 
         # new dataframe , select columns for target table , using values from json....
-        df4jsn = df3.withColumn('json_data', F.from_json(F.col('jsonstruct'), jsonschema_vvm)) \
+        # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
+        df_al_json = df_al.withColumn('json_data', F.from_json(F.col('jsonstruct'), jsonschema_vvm)) \
             .select(
             F.col('acl_id').alias('acl_id_int'),
             F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
@@ -102,8 +113,6 @@ class TMagicToClProcess(IProcess):
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
             F.col('bdmp_area_id')
-
-
         )
 
         #common_transform = CommonTransform()
@@ -112,7 +121,7 @@ class TMagicToClProcess(IProcess):
         #df_cl_d_dwhm_push_ps = common_transform.trans_al2cl(df_al_d_dwhm_push_ps)
 
         #return [df_cl_d_dwhm_bestand_ps, df_cl_d_dwhm_push_ps]
-        return  df4jsn
+        return  df_al_json
 
     def handle_output_dfs(self, out_dfs):
         """
@@ -126,7 +135,9 @@ class TMagicToClProcess(IProcess):
 
         # test table  devlab: 'cl_tmagic_l0_vvmarea_mt'
         #spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, 'cl_f_vvmarea_mt', overwrite=True)
-        spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, self._out_table_name , overwrite=True)
+        # if dataframe doesn't have data - skip insert to table, no new data=no insert
+        if df_cl_tmagic_vvm_area :
+          spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, self._out_table_name , overwrite=True)
 
         Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
                                            self._in_table_name, self._max_acl_dop_val)

@@ -37,7 +37,7 @@ def update_process_tracking_table(spark, etl_process_name, table_name, max_track
 
         df_process_partition = spark.createDataFrame(vals, columns)
         spark_io.df2hive(df_process_partition, DB_BBE_CORE, TABLE_BBE_PROCESS_TRACKING, overwrite=True)
-        invalidate_metadata(DB_BBE_CORE, TABLE_BBE_PROCESS_TRACKING)
+        # disabled,miro,  invalidate_metadata(DB_BBE_CORE, TABLE_BBE_PROCESS_TRACKING)
 
 
 def get_max_value_from_process_tracking_table(spark, etl_process_name, table_name, col_name=False):
