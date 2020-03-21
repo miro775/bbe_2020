@@ -14,6 +14,7 @@ from de.telekom.bdmp.bdmf.base.environment import Environment
 from de.telekom.bdmp.bbe.common.bdmp_constants import *
 #import de.telekom.bdmp.pyfw.etl_framework.util as util  = logic cloned from ENT
 import de.telekom.bdmp.pyfw.etl_framework.util as util
+from datetime import datetime
 
 
 def update_process_tracking_table(spark, etl_process_name, table_name, max_tracking_value, col_name='acl_dop'):
@@ -33,7 +34,9 @@ def update_process_tracking_table(spark, etl_process_name, table_name, max_track
 
         # table_name,max_tracking_value,col_name,bdmp_loadstamp,bdmp_id,bdmp_area_id,etl_process_name
         columns = ['table_name', 'max_tracking_value', 'col_name', 'bdmp_loadstamp','bdmp_id','bdmp_area_id', 'etl_process_name']
-        vals = [(table_name, max_tracking_value, col_name, '','','', etl_process_name)]
+        # miro, timestamp in BBE tracking tbl.
+        now_timestmp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        vals = [(table_name, max_tracking_value, col_name, now_timestmp ,'','', etl_process_name)]
 
         df_process_partition = spark.createDataFrame(vals, columns)
         spark_io.df2hive(df_process_partition, DB_BBE_CORE, TABLE_BBE_PROCESS_TRACKING, overwrite=True)

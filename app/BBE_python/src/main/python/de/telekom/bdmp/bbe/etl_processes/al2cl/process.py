@@ -37,6 +37,7 @@ class TMagicToClProcess(IProcess):
                              save_dfs_if_exc=save_dfs_if_exc, persist_result_dfs=persist_result_dfs)
 
         self._max_acl_dop_val = 0
+        self._new_records_count = 0
 
 
     def prepare_input_dfs(self, in_dfs):
@@ -77,6 +78,8 @@ class TMagicToClProcess(IProcess):
         df_al = df_input_vvmarea.filter((df_input_vvmarea['messagetype'] == 'DigiOSS - vvmArea') \
                                       & (df_input_vvmarea['Messageversion'] == '1') \
                                       & (df_input_vvmarea[tracked_col] > current_tracked_value))
+
+        self._new_records_count = df_al.count()
 
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
