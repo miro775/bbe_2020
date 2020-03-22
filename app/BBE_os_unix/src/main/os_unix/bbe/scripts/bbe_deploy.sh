@@ -52,6 +52,11 @@ EXITCODE=${PIPESTATUS[0]}; if [ ${EXITCODE} -ne 0 ]; then echo Exiting hdfs with
 # EXITCODE=${PIPESTATUS[0]}; if [ ${EXITCODE} -ne 0 ]; then echo Exiting udfscript2hdfs with exitcode ${EXITCODE}; exit ${EXITCODE}; fi
 python3 ${BDMP_PYTHON}/de/telekom/bdmp/bdmf/install/deploy.py -w oozie2hdfs -S BBE 2>&1 | tee -a ${LOGFILE} ${LOGFILE_OOZIE2HDFS}
 EXITCODE=${PIPESTATUS[0]}; if [ ${EXITCODE} -ne 0 ]; then echo Exiting oozie2hdfs with exitcode ${EXITCODE}; exit ${EXITCODE}; fi
+python3 ${BDMP_PYTHON}/de/telekom/bdmp/bdmf/install/deploy.py -w ooziedeps -S BBE 2>&1 | tee -a ${LOGFILE} ${LOGFILE_OOZIE2HDFS}
+EXITCODE=${PIPESTATUS[0]}; if [ ${EXITCODE} -ne 0 ]; then echo Exiting ooziedeps with exitcode ${EXITCODE}; exit ${EXITCODE}; fi
+python3 ${BDMP_PYTHON}/de/telekom/bdmp/bdmf/install/deploy.py -w oozieconf2hdfs -S BBE 2>&1 | tee -a ${LOGFILE} ${LOGFILE_OOZIE2HDFS}
+EXITCODE=${PIPESTATUS[0]}; if [ ${EXITCODE} -ne 0 ]; then echo Exiting oozieconf2hdfs with exitcode ${EXITCODE}; exit ${EXITCODE}; fi
+
 
 
 hive_migration_script=${BBE_HIVE_HQL}/migrate/${BDMP_STREAM_LOWER}_migrate_v${CURRENT_VERSION}_v${TARGET_VERSION}.hql
