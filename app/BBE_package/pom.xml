@@ -40,7 +40,7 @@
 		<testOutputDirectory>target/test</testOutputDirectory>
 		<resources>
 			<resource>
-				<directory>../BBE_hbase/target/main</directory>
+				<directory>../BBE_oozie/target/main</directory>
 				<targetPath>${app.directory}</targetPath>
 				<filtering>false</filtering>
 			</resource>
