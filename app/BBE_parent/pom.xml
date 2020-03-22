@@ -35,10 +35,10 @@
     </properties>
     <modules>
         <!-- <module>../BBE_hbase</module> -->
-        <module>../BBE_hive</module>
         <module>../BBE_os_unix</module>
+        <module>../BBE_hive</module>
         <module>../BBE_python</module>
-        <!-- <module>../BBE_udf_scripts</module> -->
+        <module>../BBE_oozie</module>
         <module>../BBE_package</module>
     </modules>
     <build>
