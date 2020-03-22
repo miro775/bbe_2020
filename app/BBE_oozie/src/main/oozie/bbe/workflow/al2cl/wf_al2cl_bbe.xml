@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   ===========================================================================
+   BDMP
+   ===========================================================================
+   ===========================================================================
+   Beschreibung: Workflow running BBE AL2CL etl processes
+   ===========================================================================
+-->
+<workflow-app
+        xmlns="uri:oozie:workflow:0.5"
+        name="wf_al2cl_bbe_process">
+    <global>
+        <job-tracker>${jobTracker}</job-tracker>
+        <name-node>${nameNode}</name-node>
+        <configuration>
+            <property>
+                <name>bdmpScripts</name>
+                <value>${bdmpScripts}</value>
+            </property>
+            <property>
+                <name>etlProcessesFolder</name>
+                <value>${etlProcessesFolder}</value>
+            </property>
+        </configuration>
+    </global>
+    <start to="subwf_vvmarea"/>
+
+    <action name="subwf_vvmarea">
+        <sub-workflow>
+            <app-path>${workflowBase}/entities/wf_vvmarea.xml</app-path>
+        </sub-workflow>
+        <ok to="end"/>
+        <error to="end"/>
+    </action>
+	
+    <end name="end"/>
+</workflow-app>
