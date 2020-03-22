@@ -13,7 +13,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.telekom.bdmp</groupId>
 	<artifactId>bbe-oozie</artifactId>
-	<version>dev-bld-currbbe-SNAPSHOT</version>
+	<version>dev-bld-current-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>BBE_oozie</name>
 	<properties>
@@ -22,7 +22,7 @@
 	<parent>
 		<groupId>de.telekom.bdmp</groupId>
 		<artifactId>bbe-parent</artifactId>
-		<version>dev-bld-currbbe-SNAPSHOT</version>
+		<version>dev-bld-current-SNAPSHOT</version>
 		<relativePath>../BBE_parent</relativePath>
 	</parent>
 	<build>
