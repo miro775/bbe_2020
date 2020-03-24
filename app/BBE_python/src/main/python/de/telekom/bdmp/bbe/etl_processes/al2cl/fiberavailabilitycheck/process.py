@@ -68,24 +68,25 @@ class FACToClProcess(IProcess):
         self.log.debug('### logic of process \'{0}\' started,get_max_value_from_process_tracking_table...'.format(self.name))
 
         # retrieve information from the tracking table
-        current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
-            self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
+        #current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
+        #    self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
 
         # compute max value of acl_dop - needed for next transformation
-        self._max_acl_dop_val = df_input.agg(F.max(df_input[tracked_col]).alias('max')).collect()[0][0]
+        #self._max_acl_dop_val = df_input.agg(F.max(df_input[tracked_col]).alias('max')).collect()[0][0]
 
-        self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'.\
-                       format(self.name,current_tracked_value,self._max_acl_dop_val))
+        #self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'.\
+        #               format(self.name,current_tracked_value,self._max_acl_dop_val))
 
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - FiberAvailabilityEvent V2') \
                                       & (df_input['Messageversion'] == '2') \
-                                      & (df_input['acl_id'] == '200049771') \
-                                      & (df_input[tracked_col] > current_tracked_value))
+                                      & (df_input['acl_id'] == '200049771')) #\
+                                      #& (df_input[tracked_col] > current_tracked_value))
 
         #  testing 1 record, acl_id = '200049771'
 
         self._new_records_count = df_al.count()
+        self.log.debug('### in_df, records count= \'{0}\' '.format(self._new_records_count))
 
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
@@ -98,8 +99,8 @@ class FACToClProcess(IProcess):
 
 
         # printSchema only for DEBUG on devlab!
-        jsonschema_fac = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct))
-        jsonschema_fac.printSchema()  # AttributeError: 'StructType' object has no attribute 'printSchema'
+        #jsonschema_fac = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct))
+        #jsonschema_fac.printSchema()  # AttributeError: 'StructType' object has no attribute 'printSchema'
 
         # 'JSON.schema' as StructType ,  from column: jsonstruct
         jsonschema1 = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
@@ -116,15 +117,16 @@ class FACToClProcess(IProcess):
 
             #F.col('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem.service.place[id]').alias('klsid_ps'),
 
-            F.col('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem.service.id').alias(
-                'klsid_ps'),
+            # ??  F.col('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem.service.place').alias('klsid_ps'),
+
+            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0].id').alias('klsid_ps'),
 
             #F.col('json_data.availabilityCheckCalledEvent.eventId').alias('eventid'),
             #F.from_unixtime(F.col('json_data.availabilityCheckCalledEvent.eventTime')[0:10]).alias('requesttime_ISO'),
             #F.col('json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code').alias('eligibilityUnavailabilityReasonCode'),
             #F.col('json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label').alias('eligibilityUnavailabilityReasonLabel'),
 
-            F.lit('#ev').cast(StringType()).alias('eventid'),
+            F.lit('#ev4').cast(StringType()).alias('eventid'),
             F.lit(None).cast(TimestampType()).alias('requesttime_ISO'),
             F.lit('#cod').cast(StringType()).alias('eligibilityUnavailabilityReasonCode'),
             F.lit('#lbl').cast(StringType()).alias('eligibilityUnavailabilityReasonLabel'),
