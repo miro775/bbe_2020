@@ -26,7 +26,7 @@ class FACToClProcess(IProcess):
         Constructor initialize the process
         db_d171_bbe_core_iws.cl_f_fiberavailabilitycheck_mt
         """
-        self._etl_process_name = 'proc_f_fiberavailabilitycheck'
+        self._etl_process_name = 'proc_f_fiberavailabilitycheck_v2'
         self._db_in = DB_BBE_BASE
         self._in_table_name = 'al_gigabit_message_fac_mt'
 
@@ -65,6 +65,8 @@ class FACToClProcess(IProcess):
 
         df_input = in_dfs
 
+        self.log.debug('### logic of process \'{0}\' started,get_max_value_from_process_tracking_table...'.format(self.name))
+
         # retrieve information from the tracking table
         current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
             self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
@@ -78,7 +80,10 @@ class FACToClProcess(IProcess):
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - FiberAvailabilityEvent V2') \
                                       & (df_input['Messageversion'] == '2') \
+                                      & (df_input['acl_id'] == '200049771') \
                                       & (df_input[tracked_col] > current_tracked_value))
+
+        #  testing 1 record, acl_id = '200049771'
 
         self._new_records_count = df_al.count()
 
@@ -91,9 +96,14 @@ class FACToClProcess(IProcess):
 
         #  get schema from json-column 'jsonstruct'
 
-        #jsonschema_vvm = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
 
+        # printSchema only for DEBUG on devlab!
+        jsonschema_fac = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct))
+        jsonschema_fac.printSchema()  # AttributeError: 'StructType' object has no attribute 'printSchema'
+
+        # 'JSON.schema' as StructType ,  from column: jsonstruct
         jsonschema1 = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
+
 
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
@@ -102,17 +112,27 @@ class FACToClProcess(IProcess):
             F.col('acl_id').alias('acl_id_int'),
             F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
             F.col('messageversion'),
-            F.col('json_data.number').alias('number'),
-            F.col('json_data.name').alias('name'),
-            F.lit(None).cast(BooleanType()).alias('is_reporting_relevant'),
-            F.from_unixtime(F.col('json_data.creationDate')[0:10]).alias('creationDate_ISO'),
-            F.from_unixtime(F.col('json_data.modificationDate')[0:10]).alias('modificationDate_ISO'),
-            F.col('json_data.areaType'),
-            F.from_unixtime(F.col('json_data.rolloutDate')[0:10]).alias('rolloutDate'),
-            F.col('json_data.areaStatus'),
-            F.col('json_data.plannedArea'),
-            F.from_unixtime(F.col('json_data.plannedFrom')[0:10]).alias('plannedFrom_ISO'),
-            F.from_unixtime(F.col('json_data.plannedTo')[0:10]).alias('plannedTo_ISO'),
+            # '$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0].id
+
+            #F.col('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem.service.place[id]').alias('klsid_ps'),
+
+            F.col('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem.service.id').alias(
+                'klsid_ps'),
+
+            #F.col('json_data.availabilityCheckCalledEvent.eventId').alias('eventid'),
+            #F.from_unixtime(F.col('json_data.availabilityCheckCalledEvent.eventTime')[0:10]).alias('requesttime_ISO'),
+            #F.col('json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code').alias('eligibilityUnavailabilityReasonCode'),
+            #F.col('json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label').alias('eligibilityUnavailabilityReasonLabel'),
+
+            F.lit('#ev').cast(StringType()).alias('eventid'),
+            F.lit(None).cast(TimestampType()).alias('requesttime_ISO'),
+            F.lit('#cod').cast(StringType()).alias('eligibilityUnavailabilityReasonCode'),
+            F.lit('#lbl').cast(StringType()).alias('eligibilityUnavailabilityReasonLabel'),
+
+
+            F.lit('#ausbaustandgf').cast(StringType()).alias('ausbaustandgf'),
+            F.lit('#planbeginngfausbau').cast(StringType()).alias('planbeginngfausbau'),
+            F.lit('#planendegfausbau').cast(StringType()).alias('planendegfausbau'),
 
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
@@ -143,8 +163,8 @@ class FACToClProcess(IProcess):
         if df_cl_tmagic:
           spark_io.df2hive(df_cl_tmagic, DB_BBE_CORE, self._out_table_name , overwrite=False)
 
-        Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
-                                           self._in_table_name, self._max_acl_dop_val)
+        #Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
+         #                                  self._in_table_name, self._max_acl_dop_val)
 
 
         return df_cl_tmagic
