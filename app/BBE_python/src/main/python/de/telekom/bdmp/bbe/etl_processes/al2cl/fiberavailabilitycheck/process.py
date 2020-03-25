@@ -113,28 +113,44 @@ class FACToClProcess(IProcess):
             F.col('acl_id').alias('acl_id_int'),
             F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
             F.col('messageversion'),
-            # '$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0].id
 
-            #F.col('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem.service.place[id]').alias('klsid_ps'),
+            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0].id')\
+                .alias('klsid_ps'),
 
-            # ??  F.col('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem.service.place').alias('klsid_ps'),
+            F.col('json_data.availabilityCheckCalledEvent.eventId').alias('eventid'),
 
-            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0].id').alias('klsid_ps'),
+            #  fix this:  F.to_timestamp(F.col('json_data.availabilityCheckCalledEvent.eventTime')[0:19], 'yyyy-MM-ddTHH:mm:ss')
 
-            #F.col('json_data.availabilityCheckCalledEvent.eventId').alias('eventid'),
-            #F.from_unixtime(F.col('json_data.availabilityCheckCalledEvent.eventTime')[0:10]).alias('requesttime_ISO'),
-            #F.col('json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code').alias('eligibilityUnavailabilityReasonCode'),
-            #F.col('json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label').alias('eligibilityUnavailabilityReasonLabel'),
+            # temporary,  only date, fix it later
+            F.to_timestamp(F.col('json_data.availabilityCheckCalledEvent.eventTime')[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
 
-            F.lit('#ev4').cast(StringType()).alias('eventid'),
-            F.lit(None).cast(TimestampType()).alias('requesttime_ISO'),
-            F.lit('#cod').cast(StringType()).alias('eligibilityUnavailabilityReasonCode'),
-            F.lit('#lbl').cast(StringType()).alias('eligibilityUnavailabilityReasonLabel'),
+            F.lit('#partyid').cast(StringType()).alias('partyid'),
+            F.lit('#errormessage').cast(StringType()).alias('errormessage'),
 
+            # .availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code
+            #F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason') \
+             #   .alias('eligibilityUnavailabilityReasonCode'),
 
-            F.lit('#ausbaustandgf').cast(StringType()).alias('ausbaustandgf'),
-            F.lit('#planbeginngfausbau').cast(StringType()).alias('planbeginngfausbau'),
-            F.lit('#planendegfausbau').cast(StringType()).alias('planendegfausbau'),
+            F.lit(None).alias('eligibilityUnavailabilityReasonCode'),
+
+            #F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label') \
+            #    .alias('eligibilityUnavailabilityReasonLabel'),
+
+            F.lit(None).alias('eligibilityUnavailabilityReasonLabel'),
+
+            #F.lit('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]."@type"') \
+            #    .alias('address_type'),
+            F.lit(None).alias('address_type'),
+
+            # availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]
+            # fix this!
+            F.expr('availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]') \
+                .alias('ausbaustandgf'),
+            F.lit(None).alias('planbeginngfausbau'),
+            F.lit(None).alias('planendegfausbau'),
+
+            F.lit(None).cast(StringType()).alias('kooperationspartner'),
+            F.lit(None).cast(StringType()).alias('technologie'),
 
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
