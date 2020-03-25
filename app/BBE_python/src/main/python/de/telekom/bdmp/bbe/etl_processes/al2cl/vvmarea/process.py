@@ -113,6 +113,11 @@ class TMagicToClProcess(IProcess):
             F.from_unixtime(F.col('json_data.plannedFrom')[0:10]).alias('plannedFrom_ISO'),
             F.from_unixtime(F.col('json_data.plannedTo')[0:10]).alias('plannedTo_ISO'),
 
+            # parse json, for 3new columns, 25.3.2020
+            F.lit(None).alias('threshold'),
+            F.lit(None).alias('orderscountinvvm'),
+            F.lit(None).alias('additionalorderscountinvvm'),
+
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
             F.col('bdmp_area_id')
