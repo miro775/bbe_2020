@@ -79,8 +79,8 @@ class FACToClProcess(IProcess):
 
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - FiberAvailabilityEvent V2') \
-                                      & (df_input['Messageversion'] == '2') \
-                                      & (df_input['acl_id'] == '200049771')) #\
+                                      & (df_input['Messageversion'] == '2'))  #\
+                                      #& (df_input['acl_id'] == '200049771')) #\
                                       #& (df_input[tracked_col] > current_tracked_value))
 
         #  testing 1 record, acl_id = '200049771'
@@ -124,28 +124,35 @@ class FACToClProcess(IProcess):
             # temporary,  only date, fix it later
             F.to_timestamp(F.col('json_data.availabilityCheckCalledEvent.eventTime')[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
 
-            F.lit('#partyid').cast(StringType()).alias('partyid'),
+            F.col('json_data.availabilityCheckCalledEvent.partyId').cast(StringType()).alias('partyid'),
             F.lit('#errormessage').cast(StringType()).alias('errormessage'),
 
-            # .availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code
-            #F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason') \
-             #   .alias('eligibilityUnavailabilityReasonCode'),
+            # ok:
+            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code') \
+                .alias('eligibilityUnavailabilityReasonCode'),
 
-            F.lit(None).alias('eligibilityUnavailabilityReasonCode'),
+            #F.lit(None).alias('eligibilityUnavailabilityReasonCode'),
 
-            #F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label') \
-            #    .alias('eligibilityUnavailabilityReasonLabel'),
+            # ok:
+            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label') \
+                .alias('eligibilityUnavailabilityReasonLabel'),
 
-            F.lit(None).alias('eligibilityUnavailabilityReasonLabel'),
+            #F.lit(None).alias('eligibilityUnavailabilityReasonLabel'),
 
-            #F.lit('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]."@type"') \
-            #    .alias('address_type'),
-            F.lit(None).alias('address_type'),
+
+            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]') \
+              .alias('address_type'),
+            #F.lit(None).alias('address_type'),
 
             # availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]
             # fix this!
-            F.expr('availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]') \
+
+            #availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[?name == 'Ausbaustand Glasfaser'].value
+            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]') \
                 .alias('ausbaustandgf'),
+
+            #F.lit(None).alias('ausbaustandgf'),
+
             F.lit(None).alias('planbeginngfausbau'),
             F.lit(None).alias('planendegfausbau'),
 
