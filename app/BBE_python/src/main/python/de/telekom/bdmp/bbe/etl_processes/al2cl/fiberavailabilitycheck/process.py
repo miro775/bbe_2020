@@ -63,6 +63,16 @@ class FACToClProcess(IProcess):
         Logic of the whole process
         """
 
+        # serviceCharacteristic values:
+        var_AusbaustandGF = None       # name:"Ausbaustand Glasfaser"
+        var_PlanBeginnGfAusbau = None  # name:"Geplanter Beginn Glasfaser-Ausbau"
+        var_PlanEndeGfAusbau = None    # name:"Geplantes Ende Glasfaser-Ausbau"
+        var_Kooperationspartner = None # name:"Kooperationspartner"
+        var_Technologie = None         # name: "Technologie"
+
+
+
+
         df_input = in_dfs
 
         self.log.debug('### logic of process \'{0}\' started,get_max_value_from_process_tracking_table...'.format(self.name))
@@ -79,9 +89,11 @@ class FACToClProcess(IProcess):
 
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - FiberAvailabilityEvent V2') \
-                                      & (df_input['Messageversion'] == '2'))  #\
-                                      #& (df_input['acl_id'] == '200049771')) #\
+                                      & (df_input['Messageversion'] == '2')  \
+                                      & (df_input['acl_id'] == '200049771')    ) #\
                                       #& (df_input[tracked_col] > current_tracked_value))
+
+
 
         #  testing 1 record, acl_id = '200049771'
 
@@ -106,6 +118,7 @@ class FACToClProcess(IProcess):
         jsonschema1 = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
 
 
+
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
         df_al_json = df_al.withColumn('json_data', F.from_json(F.col('jsonstruct'), jsonschema1)) \
@@ -119,13 +132,13 @@ class FACToClProcess(IProcess):
 
             F.col('json_data.availabilityCheckCalledEvent.eventId').alias('eventid'),
 
-            #  fix this:  F.to_timestamp(F.col('json_data.availabilityCheckCalledEvent.eventTime')[0:19], 'yyyy-MM-ddTHH:mm:ss')
 
-            # temporary,  only date, fix it later
+            # temporary,  only date, truncated HH:MM:ss  because extra char "T"
             F.to_timestamp(F.col('json_data.availabilityCheckCalledEvent.eventTime')[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
+            ##F.col('json_data.availabilityCheckCalledEvent.eventTime').alias('eventTime'),
 
             F.col('json_data.availabilityCheckCalledEvent.partyId').cast(StringType()).alias('partyid'),
-            F.lit('#errormessage').cast(StringType()).alias('errormessage'),
+            F.lit(None).cast(StringType()).alias('errormessage'),
 
             # ok:
             F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code') \
@@ -148,10 +161,14 @@ class FACToClProcess(IProcess):
             # fix this!
 
             #availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[?name == 'Ausbaustand Glasfaser'].value
-            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]') \
-                .alias('ausbaustandgf'),
+            #F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].name') \
+            #    .alias('_serviceCharacteristic_name'),
+            #F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].value') \
+            #    .alias('_serviceCharacteristic_value'),
 
             #F.lit(None).alias('ausbaustandgf'),
+            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]') \
+                .alias('ausbaustandgf'),
 
             F.lit(None).alias('planbeginngfausbau'),
             F.lit(None).alias('planendegfausbau'),
@@ -164,12 +181,13 @@ class FACToClProcess(IProcess):
             F.col('bdmp_area_id')
         )
 
-        #common_transform = CommonTransform()
+        # Debug, show 1.st record ,data, False=no truncate
+        df_al_json.show(1,False)
 
-        #df_cl_d_dwhm_bestand_ps = common_transform.trans_al2cl(df_al_d_dwhm_bestand_ps)
-        #df_cl_d_dwhm_push_ps = common_transform.trans_al2cl(df_al_d_dwhm_push_ps)
+        #if(df_al_json._serviceCharacteristic_name=='Ausbaustand Glasfaser'):
+        #    val_AusbaustandGF = df_al_json._serviceCharacteristic_value
 
-        #return [df_cl_d_dwhm_bestand_ps, df_cl_d_dwhm_push_ps]
+
         return  df_al_json
 
     def handle_output_dfs(self, out_dfs):
