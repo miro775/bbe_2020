@@ -9,6 +9,8 @@ import de.telekom.bdmp.bbe.common.functions as Func
 
 from pyspark.sql.types import *
 import pyspark.sql.functions as F
+from pyspark.sql.dataframe import DataFrame
+
 #from pyspark.sql.functions import from_json
 #from pyspark.sql.functions import from_unixtime
 #from pyspark.sql.functions import to_timestamp
@@ -91,8 +93,11 @@ class FACToClProcess(IProcess):
 
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - FiberAvailabilityEvent V2') \
-                                      & (df_input['Messageversion'] == '2')  \
-                                      & (df_input['acl_id'] == '200049771')    ) #\
+                                      & (df_input['Messageversion'] == '2') \
+
+                                      & ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))
+                                )
+                                      #& (df_input['acl_id'] == '200049771')    ) #\
                                       #& (df_input[tracked_col] > current_tracked_value))
 
 
@@ -130,7 +135,6 @@ class FACToClProcess(IProcess):
             F.col('messageversion'),
 
             F.expr( FAC_v2_klsid_ps ).alias('klsid_ps'),
-
             F.col( FAC_v2_eventid ).alias('eventid'),
 
             # temporary,  only date, truncated HH:MM:ss  because extra char "T" , fix it
@@ -140,28 +144,60 @@ class FACToClProcess(IProcess):
             F.lit(None).cast(StringType()).alias('errormessage'),
 
             F.expr( FAC_v2_eligibilityUnavailabilityReasonCode ).alias('eligibilityUnavailabilityReasonCode'),
-
             F.expr( FAC_v2_eligibilityUnavailabilityReasonLabel ).alias('eligibilityUnavailabilityReasonLabel'),
 
-            # another PARSING needed
+            # additional PARSING needed:
             F.expr( FAC_v2__place ).alias('address_type'),
-            #F.lit(None).alias('address_type'),
+
+            # not working: F.get_json_object('jsonstruct',FAC_v2__place_type).alias('address_type'),
+
+            F.expr(FAC_v2__serviceCharacteristic_name).alias('serviceCharacteristic_name'),
+            F.expr(FAC_v2__serviceCharacteristic_value).alias('serviceCharacteristic_value'),
 
 
             # another PARSING needed
-            F.expr( FAC_v2__serviceCharacteristic ).alias('ausbaustandgf'),
-            # F.lit(None).alias('ausbaustandgf'),
+            #F.expr( FAC_v2__serviceCharacteristic ).alias('ausbaustandgf'),
+            # F.lit(None).alias('ausbaustandgf
 
-            F.lit(None).alias('planbeginngfausbau'),
-            F.lit(None).alias('planendegfausbau'),
+            #F.lit(None).alias('planbeginngfausbau'),
+            #F.lit(None).alias('planendegfausbau'),
 
-            F.lit(None).cast(StringType()).alias('kooperationspartner'),
-            F.lit(None).cast(StringType()).alias('technologie'),
+            #F.lit(None).cast(StringType()).alias('kooperationspartner'),
+            #F.lit(None).cast(StringType()).alias('technologie'),
 
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
             F.col('bdmp_area_id')
+
+
         )
+
+        df_al_json.show(10, False)
+
+
+        df_AusbaustandGF = df_al_json.select(df_al_json['acl_id_int'],
+                                             df_al_json['serviceCharacteristic_name'],
+                                             df_al_json['serviceCharacteristic_value'])
+
+        df_AusbaustandGF.show(10,False)
+
+        var_AusbaustandGF = df_AusbaustandGF.filter(df_AusbaustandGF['serviceCharacteristic_name'] =='Ausbaustand Glasfaser') \
+        .select(df_al_json['acl_id_int'], df_AusbaustandGF['serviceCharacteristic_value'])
+
+        var_AusbaustandGF.show()
+
+
+        #res = df.select(get_json_object(df['info'], "$.name").alias('name'))
+        #res = df.filter(get_json_object(df['info'], "$.name") == 'pat')
+
+        #var_AusbaustandGF = df_AusbaustandGF.select(F.get_json_object(df_AusbaustandGF['serviceCharacteristic_json']), "$.name")
+        #var_AusbaustandGF.show()
+
+
+
+
+        #df2_json = df_al.withColumn('json_data', F.get_json_object(F.col('jsonstruct'), FAC_v2__serviceCharacteristic))
+        #df2_json.show(1,False)
 
         # Debug, show 1.st record ,data, False=no truncate
         #df_al_json.show(1,False)

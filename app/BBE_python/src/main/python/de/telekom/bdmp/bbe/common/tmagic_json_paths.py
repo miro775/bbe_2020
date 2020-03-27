@@ -10,6 +10,11 @@ FAC_v2_eligibilityUnavailabilityReasonLabel = 'json_data.availabilityCheckCalled
 
 # address_type
 FAC_v2__place  = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]'
+FAC_v2__place_struct = '$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]'
 
-# ausbaustandgf
+# serviceCharacteristic
+# syntax for get_json_object():         "$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]"
 FAC_v2__serviceCharacteristic = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]'
+
+FAC_v2__serviceCharacteristic_name ="json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].name"
+FAC_v2__serviceCharacteristic_value ="json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].value"
