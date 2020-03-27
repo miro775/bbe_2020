@@ -75,27 +75,23 @@ class FACToClProcess(IProcess):
         self.log.debug('### logic of process \'{0}\' started,get_max_value_from_process_tracking_table...'.format(self.name))
 
         # retrieve information from the tracking table
-        #current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
-        #    self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
+        current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
+            self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
 
         # compute max value of acl_dop - needed for next transformation
-        #self._max_acl_dop_val = df_input.agg(F.max(df_input[tracked_col]).alias('max')).collect()[0][0]
+        self._max_acl_dop_val = df_input.agg(F.max(df_input[tracked_col]).alias('max')).collect()[0][0]
 
-        #self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'.\
-        #               format(self.name,current_tracked_value,self._max_acl_dop_val))
+        self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'.\
+                       format(self.name,current_tracked_value,self._max_acl_dop_val))
 
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - FiberAvailabilityEvent V2') \
                                       & (df_input['Messageversion'] == '2') \
+                                      & (df_input[tracked_col] > current_tracked_value))
 
-                                      & ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))
-                                )
-                                      #& (df_input['acl_id'] == '200049771')    ) #\
-                                      #& (df_input[tracked_col] > current_tracked_value))
+                                      #  testing only & ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))
 
 
-
-        #  testing 1 record, acl_id = '200049771'
 
         self._new_records_count = df_al.count()
         self.log.debug('### in_df, records count= \'{0}\' '.format(self._new_records_count))
@@ -167,7 +163,7 @@ class FACToClProcess(IProcess):
 
         )
 
-        df_al_json.show(10, False)
+        #df_al_json.show(10, False)
 
 
         # parse FaC serviceCharacteristic[] values:
@@ -180,7 +176,7 @@ class FACToClProcess(IProcess):
                                        df_al_json['serviceCharacteristic_name'],
                                        df_al_json['serviceCharacteristic_value'])
 
-        df_serv_ch.show(10,False)
+        #df_serv_ch.show(10,False)
 
         # add aliases to columns to have unique columns name....
         df_AusbaustandGF = df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Ausbaustand Glasfaser') \
@@ -192,9 +188,9 @@ class FACToClProcess(IProcess):
         df_Technologie= df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Technologie') \
         .select(df_al_json['acl_id_int'].alias('acl_id_03'), df_serv_ch['serviceCharacteristic_value'].alias('technologie'))
 
-        df_AusbaustandGF.show()
-        df_Kooperationspartner.show()
-        df_Technologie.show()
+        #df_AusbaustandGF.show()
+        #df_Kooperationspartner.show()
+        #df_Technologie.show()
 
 
         # avoid exception,  added aliases for join-column: 'acl_id_int'
@@ -234,7 +230,7 @@ class FACToClProcess(IProcess):
                     df_al_json['bdmp_area_id']
                    )
 
-        df_FAC2.show(2,False)
+        #df_FAC2.show(2,False)
 
         return  df_FAC2
 
@@ -254,8 +250,8 @@ class FACToClProcess(IProcess):
         if df_cl_tmagic:
           spark_io.df2hive(df_cl_tmagic, DB_BBE_CORE, self._out_table_name , overwrite=False)
 
-        #Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
-         #                                  self._in_table_name, self._max_acl_dop_val)
+        Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
+                                           self._in_table_name, self._max_acl_dop_val)
 
 
         return df_cl_tmagic
