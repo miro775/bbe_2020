@@ -176,18 +176,21 @@ class FACToClProcess(IProcess):
         #  "Geplantes Ende Glasfaser-Ausbau"
         #  "Kooperationspartner"
         #  "Technologie"
-        df_serv_ch = df_al_json.select(df_al_json['acl_id_int'],df_al_json['serviceCharacteristic_name'],df_al_json['serviceCharacteristic_value'])
+        df_serv_ch = df_al_json.select(df_al_json['acl_id_int'],
+                                       df_al_json['serviceCharacteristic_name'],
+                                       df_al_json['serviceCharacteristic_value'])
 
         df_serv_ch.show(10,False)
 
+        # add aliases to columns to have unique columns name....
         df_AusbaustandGF = df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Ausbaustand Glasfaser') \
-        .select(df_al_json['acl_id_int'].alias('acl_id_01'), df_serv_ch['serviceCharacteristic_value'])
+        .select(df_al_json['acl_id_int'].alias('acl_id_01'), df_serv_ch['serviceCharacteristic_value'].alias('ausbaustandgf'))
 
         df_Kooperationspartner = df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Kooperationspartner') \
-        .select(df_al_json['acl_id_int'].alias('acl_id_02'), df_serv_ch['serviceCharacteristic_value'])
+        .select(df_al_json['acl_id_int'].alias('acl_id_02'), df_serv_ch['serviceCharacteristic_value'].alias('kooperationspartner'))
 
         df_Technologie= df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Technologie') \
-        .select(df_al_json['acl_id_int'].alias('acl_id_03'), df_serv_ch['serviceCharacteristic_value'])
+        .select(df_al_json['acl_id_int'].alias('acl_id_03'), df_serv_ch['serviceCharacteristic_value'].alias('technologie'))
 
         df_AusbaustandGF.show()
         df_Kooperationspartner.show()
@@ -215,12 +218,16 @@ class FACToClProcess(IProcess):
                     df_al_json['eligibilityUnavailabilityReasonLabel'],
                     df_al_json['address_type'],
 
-                    df_AusbaustandGF['serviceCharacteristic_value'].alias('ausbaustandgf'),
+                    df_AusbaustandGF['ausbaustandgf'],
+                    #df_al_json['ausbaustandgf'],
+
                     df_al_json['planbeginngfausbau'],
                     df_al_json['planendegfausbau'],
 
-                    df_Kooperationspartner['serviceCharacteristic_value'].alias('kooperationspartner'),
-                    df_Technologie['serviceCharacteristic_value'].alias('technologie'),
+                    df_Kooperationspartner['kooperationspartner'],
+
+                    df_Technologie['technologie'],
+                    #df_al_json['technologie'],
 
                     df_al_json['bdmp_loadstamp'],
                     df_al_json['bdmp_id'],
