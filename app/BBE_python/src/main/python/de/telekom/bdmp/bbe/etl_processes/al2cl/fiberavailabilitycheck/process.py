@@ -18,6 +18,8 @@ from pyspark.sql.dataframe import DataFrame
 #from pyspark.sql.functions import lit
 from datetime import datetime
 
+JOIN_LEFT_OUTER = 'left_outer'
+
 
 
 class FACToClProcess(IProcess):
@@ -64,17 +66,8 @@ class FACToClProcess(IProcess):
 
     def logic(self, in_dfs):
         """
-        Logic of the whole process
+        Logic of the whole process,  FAC v2
         """
-
-        # serviceCharacteristic values:
-        var_AusbaustandGF = None       # name:"Ausbaustand Glasfaser"
-        var_PlanBeginnGfAusbau = None  # name:"Geplanter Beginn Glasfaser-Ausbau"
-        var_PlanEndeGfAusbau = None    # name:"Geplantes Ende Glasfaser-Ausbau"
-        var_Kooperationspartner = None # name:"Kooperationspartner"
-        var_Technologie = None         # name: "Technologie"
-
-
 
 
         df_input = in_dfs
@@ -157,13 +150,15 @@ class FACToClProcess(IProcess):
 
             # another PARSING needed
             #F.expr( FAC_v2__serviceCharacteristic ).alias('ausbaustandgf'),
-            # F.lit(None).alias('ausbaustandgf
 
-            #F.lit(None).alias('planbeginngfausbau'),
-            #F.lit(None).alias('planendegfausbau'),
+            # these columns will be added  via left joins,,,
+            F.lit(None).alias('ausbaustandgf'),
 
-            #F.lit(None).cast(StringType()).alias('kooperationspartner'),
-            #F.lit(None).cast(StringType()).alias('technologie'),
+            F.lit(None).alias('planbeginngfausbau'),
+            F.lit(None).alias('planendegfausbau'),
+
+            F.lit(None).cast(StringType()).alias('kooperationspartner'),
+            F.lit(None).cast(StringType()).alias('technologie'),
 
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
@@ -175,38 +170,66 @@ class FACToClProcess(IProcess):
         df_al_json.show(10, False)
 
 
-        df_AusbaustandGF = df_al_json.select(df_al_json['acl_id_int'],
-                                             df_al_json['serviceCharacteristic_name'],
-                                             df_al_json['serviceCharacteristic_value'])
+        # parse FaC serviceCharacteristic[] values:
+        #  "Ausbaustand Glasfaser"
+        #  "Geplanter Beginn Glasfaser-Ausbau"
+        #  "Geplantes Ende Glasfaser-Ausbau"
+        #  "Kooperationspartner"
+        #  "Technologie"
+        df_serv_ch = df_al_json.select(df_al_json['acl_id_int'],df_al_json['serviceCharacteristic_name'],df_al_json['serviceCharacteristic_value'])
 
-        df_AusbaustandGF.show(10,False)
+        df_serv_ch.show(10,False)
 
-        var_AusbaustandGF = df_AusbaustandGF.filter(df_AusbaustandGF['serviceCharacteristic_name'] =='Ausbaustand Glasfaser') \
-        .select(df_al_json['acl_id_int'], df_AusbaustandGF['serviceCharacteristic_value'])
+        df_AusbaustandGF = df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Ausbaustand Glasfaser') \
+        .select(df_al_json['acl_id_int'].alias('acl_id_01'), df_serv_ch['serviceCharacteristic_value'])
 
-        var_AusbaustandGF.show()
+        df_Kooperationspartner = df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Kooperationspartner') \
+        .select(df_al_json['acl_id_int'].alias('acl_id_02'), df_serv_ch['serviceCharacteristic_value'])
 
+        df_Technologie= df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Technologie') \
+        .select(df_al_json['acl_id_int'].alias('acl_id_03'), df_serv_ch['serviceCharacteristic_value'])
 
-        #res = df.select(get_json_object(df['info'], "$.name").alias('name'))
-        #res = df.filter(get_json_object(df['info'], "$.name") == 'pat')
-
-        #var_AusbaustandGF = df_AusbaustandGF.select(F.get_json_object(df_AusbaustandGF['serviceCharacteristic_json']), "$.name")
-        #var_AusbaustandGF.show()
-
-
-
-
-        #df2_json = df_al.withColumn('json_data', F.get_json_object(F.col('jsonstruct'), FAC_v2__serviceCharacteristic))
-        #df2_json.show(1,False)
-
-        # Debug, show 1.st record ,data, False=no truncate
-        #df_al_json.show(1,False)
-
-        #if(df_al_json._serviceCharacteristic_name=='Ausbaustand Glasfaser'):
-        #    val_AusbaustandGF = df_al_json._serviceCharacteristic_value
+        df_AusbaustandGF.show()
+        df_Kooperationspartner.show()
+        df_Technologie.show()
 
 
-        return  df_al_json
+        # avoid exception,  added aliases for join-column: 'acl_id_int'
+        # Constructing trivially true equals predicate, Perhaps you need to use aliases
+        # spark.sql.AnalysisException: Reference 'acl_id_int' is ambiguous
+
+        df_FAC2 = df_al_json \
+            .join(df_AusbaustandGF, df_al_json['acl_id_int'] == df_AusbaustandGF['acl_id_01'], JOIN_LEFT_OUTER) \
+            .join(df_Kooperationspartner, df_al_json['acl_id_int'] == df_Kooperationspartner['acl_id_02'],
+                  JOIN_LEFT_OUTER) \
+            .join(df_Technologie, df_al_json['acl_id_int'] == df_Technologie['acl_id_03'], JOIN_LEFT_OUTER) \
+            .select(df_al_json['acl_id_int'],
+                    df_al_json['acl_dop_ISO'],
+                    df_al_json['messageversion'],
+                    df_al_json['klsid_ps'],
+                    df_al_json['eventid'],
+                    df_al_json['requesttime_ISO'],
+                    df_al_json['partyid'],
+                    df_al_json['errormessage'],
+                    df_al_json['eligibilityUnavailabilityReasonCode'],
+                    df_al_json['eligibilityUnavailabilityReasonLabel'],
+                    df_al_json['address_type'],
+
+                    df_AusbaustandGF['serviceCharacteristic_value'].alias('ausbaustandgf'),
+                    df_al_json['planbeginngfausbau'],
+                    df_al_json['planendegfausbau'],
+
+                    df_Kooperationspartner['serviceCharacteristic_value'].alias('kooperationspartner'),
+                    df_Technologie['serviceCharacteristic_value'].alias('technologie'),
+
+                    df_al_json['bdmp_loadstamp'],
+                    df_al_json['bdmp_id'],
+                    df_al_json['bdmp_area_id']
+                   )
+
+        df_FAC2.show(2,False)
+
+        return  df_FAC2
 
     def handle_output_dfs(self, out_dfs):
         """
