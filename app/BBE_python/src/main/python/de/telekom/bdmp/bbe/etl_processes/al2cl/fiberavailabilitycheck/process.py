@@ -3,6 +3,8 @@ import de.telekom.bdmp.pyfw.etl_framework.util as util
 from de.telekom.bdmp.pyfw.etl_framework.iprocess import IProcess
 from de.telekom.bdmp.pyfw.etl_framework.dfcreator import DfCreator
 from de.telekom.bdmp.bbe.common.bdmp_constants import DB_BBE_BASE, DB_BBE_CORE
+
+from de.telekom.bdmp.bbe.common.tmagic_json_paths import *
 import de.telekom.bdmp.bbe.common.functions as Func
 
 from pyspark.sql.types import *
@@ -127,48 +129,28 @@ class FACToClProcess(IProcess):
             F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
             F.col('messageversion'),
 
-            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0].id')\
-                .alias('klsid_ps'),
+            F.expr( FAC_v2_klsid_ps ).alias('klsid_ps'),
 
-            F.col('json_data.availabilityCheckCalledEvent.eventId').alias('eventid'),
+            F.col( FAC_v2_eventid ).alias('eventid'),
 
+            # temporary,  only date, truncated HH:MM:ss  because extra char "T" , fix it
+            F.to_timestamp(F.col( FAC_v2_eventTime )[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
 
-            # temporary,  only date, truncated HH:MM:ss  because extra char "T"
-            F.to_timestamp(F.col('json_data.availabilityCheckCalledEvent.eventTime')[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
-            ##F.col('json_data.availabilityCheckCalledEvent.eventTime').alias('eventTime'),
-
-            F.col('json_data.availabilityCheckCalledEvent.partyId').cast(StringType()).alias('partyid'),
+            F.col( FAC_v2_partyid ).alias('partyid'),
             F.lit(None).cast(StringType()).alias('errormessage'),
 
-            # ok:
-            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code') \
-                .alias('eligibilityUnavailabilityReasonCode'),
+            F.expr( FAC_v2_eligibilityUnavailabilityReasonCode ).alias('eligibilityUnavailabilityReasonCode'),
 
-            #F.lit(None).alias('eligibilityUnavailabilityReasonCode'),
+            F.expr( FAC_v2_eligibilityUnavailabilityReasonLabel ).alias('eligibilityUnavailabilityReasonLabel'),
 
-            # ok:
-            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label') \
-                .alias('eligibilityUnavailabilityReasonLabel'),
-
-            #F.lit(None).alias('eligibilityUnavailabilityReasonLabel'),
-
-
-            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]') \
-              .alias('address_type'),
+            # another PARSING needed
+            F.expr( FAC_v2__place ).alias('address_type'),
             #F.lit(None).alias('address_type'),
 
-            # availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]
-            # fix this!
 
-            #availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[?name == 'Ausbaustand Glasfaser'].value
-            #F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].name') \
-            #    .alias('_serviceCharacteristic_name'),
-            #F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].value') \
-            #    .alias('_serviceCharacteristic_value'),
-
-            #F.lit(None).alias('ausbaustandgf'),
-            F.expr('json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]') \
-                .alias('ausbaustandgf'),
+            # another PARSING needed
+            F.expr( FAC_v2__serviceCharacteristic ).alias('ausbaustandgf'),
+            # F.lit(None).alias('ausbaustandgf'),
 
             F.lit(None).alias('planbeginngfausbau'),
             F.lit(None).alias('planendegfausbau'),
@@ -182,7 +164,7 @@ class FACToClProcess(IProcess):
         )
 
         # Debug, show 1.st record ,data, False=no truncate
-        df_al_json.show(1,False)
+        #df_al_json.show(1,False)
 
         #if(df_al_json._serviceCharacteristic_name=='Ausbaustand Glasfaser'):
         #    val_AusbaustandGF = df_al_json._serviceCharacteristic_value
