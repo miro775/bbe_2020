@@ -150,9 +150,9 @@ class FACToClProcess(IProcess):
             # read all json-struct <array> from serviceCharacteristic[]
             # !!!
             # varianta 2: syntax for F.get_json_object()  ,  dtype will be:  string
-            F.get_json_object('jsonstruct', FAC_v2__json_serviceCharacteristic).alias('json_serviceCharacteristic'),
+            F.get_json_object('jsonstruct', FAC_v2__json_serviceCharacteristic_x2).alias('json_serviceCharacteristic'),
             # varianta 1 : syntax for F.expr() ,  dtype will be :  array<struct.....
-            #F.expr( FAC_v2__json_serviceCharacteristic).alias('json_serviceCharacteristic'),
+            #F.expr( FAC_v2__json_serviceCharacteristic_x1).alias('json_serviceCharacteristic'),
 
 
 
@@ -174,7 +174,7 @@ class FACToClProcess(IProcess):
 
         )
 
-        #df_al_json.show(2, False)
+        df_al_json.show(2, False)
         #df_al_json.printSchema()
 
         # this is IN PROGRESS ,
@@ -313,7 +313,7 @@ class FACToClProcess(IProcess):
 
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
-        df_sch = df_serv_json.withColumn('json_data', F.from_json(F.col('json_serviceCharacteristic'), jsonschema2)) \
+        df_sch = df_serv_json.withColumn('json_data', F.from_json(F.col('json_serviceCharacteristic'), jsonschema2.schema)) \
             .select(
             df_serv_json['acl_id_int'].alias('acl_id_sch'),
             F.col('json_data.name').alias('s_name'),

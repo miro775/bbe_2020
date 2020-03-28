@@ -14,9 +14,9 @@ FAC_v2__place_0  = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQ
 
 # serviceCharacteristic
 #  varianta 1 : syntax for F.expr() ,  dtype will be :  array<struct.....
-FAC_v2__json_serviceCharacteristic = "json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
+FAC_v2__json_serviceCharacteristic_x1 = "json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
 # varianta 2: syntax for F.get_json_object()  ,  dtype will be:  string
-#FAC_v2__json_serviceCharacteristic = "$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
+FAC_v2__json_serviceCharacteristic_x2 = "$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
 
 #  service.serviceCharacteristic -  this struct contains fields with "@" in name !!
 #  character @ is problem!,,   array<struct<@baseType:string,@schemaLocation:string,@type:string,name:string,value:string,valueType:string>>
