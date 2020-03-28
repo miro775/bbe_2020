@@ -88,9 +88,9 @@ class FACToClProcess(IProcess):
         # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - FiberAvailabilityEvent V2') \
                                       & (df_input['Messageversion'] == '2') \
-                                      & (df_input[tracked_col] > current_tracked_value))
+                                      # & (df_input[tracked_col] > current_tracked_value))
 
-                                   #& ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))  )
+                                   & ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))  )  # 2rows for devlab debug
 
                                       #  testing only & ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))
 
@@ -162,6 +162,8 @@ class FACToClProcess(IProcess):
             F.lit(None).cast(StringType()).alias('kooperationspartner'),
             F.lit(None).cast(StringType()).alias('technologie'),
 
+            F.lit(None).alias('servicecharacteristic_array'),
+
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
             F.col('bdmp_area_id')
@@ -173,7 +175,7 @@ class FACToClProcess(IProcess):
         #df_al_json.printSchema()
 
         # this is IN PROGRESS ,
-        # self.parse_jsn_serviceCharacteristic(df_al_json)
+        self.parse_jsn_serviceCharacteristic(df_al_json)
 
 
         # parse FaC serviceCharacteristic[] values:
@@ -189,7 +191,7 @@ class FACToClProcess(IProcess):
                                        df_al_json['serviceCharacteristic0_name'],
                                        df_al_json['serviceCharacteristic0_value'])
 
-        df_serv_ch.show(10,False)
+        #df_serv_ch.show(10,False)
 
         # add aliases to columns to have unique columns name....
         df_AusbaustandGF = df_serv_ch.filter(df_serv_ch['serviceCharacteristic0_name'] =='Ausbaustand Glasfaser') \
@@ -236,6 +238,8 @@ class FACToClProcess(IProcess):
 
                     df_Technologie['technologie'],
 
+                    df_al_json['servicecharacteristic_array'],
+
                     df_al_json['bdmp_loadstamp'],
                     df_al_json['bdmp_id'],
                     df_al_json['bdmp_area_id']
@@ -270,10 +274,12 @@ class FACToClProcess(IProcess):
     # this function parsing  serviceCharacteristic ARRAY - in progress
     def parse_jsn_serviceCharacteristic(self, df_in_fac):
 
-        df_fac_json = df_in_fac
+        df_serv_json = df_in_fac.select(df_in_fac['acl_id_int'],df_in_fac['json_serviceCharacteristic'])
+        df_serv_json.show(2,False)
+
 
         # debug,  print dataTypes
-        for name, dtype in df_fac_json.dtypes:
+        for name, dtype in df_serv_json.dtypes:
             print(name, dtype)
 
 
@@ -283,7 +289,7 @@ class FACToClProcess(IProcess):
 
         # search column , need to know Data-type (struct) of  array[struct<......>]
         serviceCharacteristic_dtype = ''
-        for name, dtype in df_fac_json.dtypes:
+        for name, dtype in df_serv_json.dtypes:
             if name == 'json_serviceCharacteristic':
                 serviceCharacteristic_dtype = dtype
                 print(name, dtype)
