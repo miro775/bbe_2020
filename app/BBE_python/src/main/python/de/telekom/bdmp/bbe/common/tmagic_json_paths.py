@@ -13,10 +13,9 @@ FAC_v2__place_0  = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQ
 #FAC_v2__place_struct = '$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]'
 
 # serviceCharacteristic
-# syntax for get_json_object():         "$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]"
-# ?? FAC_v2__json_serviceCharacteristic = "$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
-#FAC_v2__json_serviceCharacteristic = "json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
+#  varianta 1 : syntax for F.expr() ,  dtype will be :  array<struct.....
 FAC_v2__json_serviceCharacteristic = "json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
+# varianta 2: syntax for F.get_json_object()  ,  dtype will be:  string
 #FAC_v2__json_serviceCharacteristic = "$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
 
 #  service.serviceCharacteristic -  this struct contains fields with "@" in name !!

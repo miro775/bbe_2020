@@ -148,8 +148,11 @@ class FACToClProcess(IProcess):
             F.expr(FAC_v2__serviceCharacteristic0_value).alias('serviceCharacteristic0_value'),
 
             # read all json-struct <array> from serviceCharacteristic[]
-            #F.get_json_object('jsonstruct', FAC_v2__json_serviceCharacteristic).alias('__json_serviceCharacteristic'),
-            F.expr( FAC_v2__json_serviceCharacteristic).alias('json_serviceCharacteristic'),
+            # !!!
+            # varianta 2: syntax for F.get_json_object()  ,  dtype will be:  string
+            F.get_json_object('jsonstruct', FAC_v2__json_serviceCharacteristic).alias('json_serviceCharacteristic'),
+            # varianta 1 : syntax for F.expr() ,  dtype will be :  array<struct.....
+            #F.expr( FAC_v2__json_serviceCharacteristic).alias('json_serviceCharacteristic'),
 
 
 
@@ -274,7 +277,8 @@ class FACToClProcess(IProcess):
     # this function parsing  serviceCharacteristic ARRAY - in progress
     def parse_jsn_serviceCharacteristic(self, df_in_fac):
 
-        df_serv_json = df_in_fac.select(df_in_fac['acl_id_int'],df_in_fac['json_serviceCharacteristic'])
+        df_serv_json = df_in_fac.select(df_in_fac['acl_id_int'],
+                                        df_in_fac['json_serviceCharacteristic'])
         df_serv_json.show(2,False)
 
 
@@ -289,27 +293,36 @@ class FACToClProcess(IProcess):
 
         # search column , need to know Data-type (struct) of  array[struct<......>]
         serviceCharacteristic_dtype = ''
-        for name, dtype in df_serv_json.dtypes:
-            if name == 'json_serviceCharacteristic':
-                serviceCharacteristic_dtype = dtype
-                print(name, dtype)
-                break
+        #for name, dtype in df_serv_json.dtypes:
+        #    if name == 'json_serviceCharacteristic':
+        #        serviceCharacteristic_dtype = dtype
+        #        print(name, dtype)
+        #        break
 
         # testing, dtype   array<struct<@baseType:string,@schemaLocation:string,@type:string,name:string,value:string,valueType:string>>
         # parsing atribute name with char "@atrributeName" - this is problem,,,,
 
-        #create dataFrame,
-        serviceCharacteristic_schema2 = StructType([StructField('baseType', StringType()),
-                          StructField('schemaLocation', StringType()),
-                          StructField('type', StringType()),
-                          StructField('name', StringType()),
-                          StructField('value', StringType()),
-                         ])
 
-            #'array<struct<baseType:string,schemaLocation:string,type:string,name:string,value:string,valueType:string>>'
 
-        #  ??  TypeError: Column is not iterable
-        #df_ServChar = self.spark_app.get_spark().createDataFrame(df_fac_json['__json_serviceCharacteristic'], serviceCharacteristic_schema2)
+        # 'JSON.schema' as StructType ,  from column: jsonstruct
+        jsonschema2 = self.spark_app.get_spark().read.\
+            json(df_serv_json.rdd.map(lambda row: row.json_serviceCharacteristic))  #.schema
+
+        jsonschema2.printSchema()
+
+
+        # new dataframe , select columns for target table , using values from json....
+        # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
+        df_sch = df_serv_json.withColumn('json_data', F.from_json(F.col('json_serviceCharacteristic'), jsonschema2)) \
+            .select(
+            df_serv_json['acl_id_int'].alias('acl_id_sch'),
+            F.col('json_data.name').alias('s_name'),
+            F.col('json_data.value').alias('s_value')
+        )
+
+        df_sch.show(20,False)
+
+
 
 
         #df_ServChar.printSchema()
