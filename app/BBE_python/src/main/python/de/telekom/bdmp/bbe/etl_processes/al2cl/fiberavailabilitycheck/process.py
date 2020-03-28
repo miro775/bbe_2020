@@ -85,9 +85,12 @@ class FACToClProcess(IProcess):
                        format(self.name,current_tracked_value,self._max_acl_dop_val))
 
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
+        # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - FiberAvailabilityEvent V2') \
                                       & (df_input['Messageversion'] == '2') \
                                       & (df_input[tracked_col] > current_tracked_value))
+
+                                   #& ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))  )
 
                                       #  testing only & ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))
 
@@ -98,7 +101,7 @@ class FACToClProcess(IProcess):
 
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
-        if df_al.rdd.isEmpty():
+        if self._new_records_count==0:
             self.log.debug('### logic of process \'{0}\' , input-dataFrame is empty, no new data'.format(self.name))
             return None
 
@@ -136,16 +139,19 @@ class FACToClProcess(IProcess):
             F.expr( FAC_v2_eligibilityUnavailabilityReasonLabel ).alias('eligibilityUnavailabilityReasonLabel'),
 
             # additional PARSING needed:
-            F.expr( FAC_v2__place ).alias('address_type'),
+            F.expr( FAC_v2__place_0 ).alias('address_type'),
 
             # not working: F.get_json_object('jsonstruct',FAC_v2__place_type).alias('address_type'),
 
-            F.expr(FAC_v2__serviceCharacteristic_name).alias('serviceCharacteristic_name'),
-            F.expr(FAC_v2__serviceCharacteristic_value).alias('serviceCharacteristic_value'),
+            # reading only first record [0]  directly...
+            F.expr(FAC_v2__serviceCharacteristic0_name).alias('serviceCharacteristic0_name'),
+            F.expr(FAC_v2__serviceCharacteristic0_value).alias('serviceCharacteristic0_value'),
+
+            # read all json-struct <array> from serviceCharacteristic[]
+            #F.get_json_object('jsonstruct', FAC_v2__json_serviceCharacteristic).alias('__json_serviceCharacteristic'),
+            F.expr( FAC_v2__json_serviceCharacteristic).alias('json_serviceCharacteristic'),
 
 
-            # another PARSING needed
-            #F.expr( FAC_v2__serviceCharacteristic ).alias('ausbaustandgf'),
 
             # these columns will be added  via left joins,,,
             F.lit(None).alias('ausbaustandgf'),
@@ -163,30 +169,37 @@ class FACToClProcess(IProcess):
 
         )
 
-        #df_al_json.show(10, False)
+        #df_al_json.show(2, False)
+        #df_al_json.printSchema()
+
+        # this is IN PROGRESS ,
+        # self.parse_jsn_serviceCharacteristic(df_al_json)
 
 
         # parse FaC serviceCharacteristic[] values:
+        #
+        #  THIS BLOCK JUST ONLY DOING FIRST  NAME/VALUE   , serviceCharacteristic[0]
+        #
         #  "Ausbaustand Glasfaser"
         #  "Geplanter Beginn Glasfaser-Ausbau"
         #  "Geplantes Ende Glasfaser-Ausbau"
         #  "Kooperationspartner"
         #  "Technologie"
         df_serv_ch = df_al_json.select(df_al_json['acl_id_int'],
-                                       df_al_json['serviceCharacteristic_name'],
-                                       df_al_json['serviceCharacteristic_value'])
+                                       df_al_json['serviceCharacteristic0_name'],
+                                       df_al_json['serviceCharacteristic0_value'])
 
-        #df_serv_ch.show(10,False)
+        df_serv_ch.show(10,False)
 
         # add aliases to columns to have unique columns name....
-        df_AusbaustandGF = df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Ausbaustand Glasfaser') \
-        .select(df_al_json['acl_id_int'].alias('acl_id_01'), df_serv_ch['serviceCharacteristic_value'].alias('ausbaustandgf'))
+        df_AusbaustandGF = df_serv_ch.filter(df_serv_ch['serviceCharacteristic0_name'] =='Ausbaustand Glasfaser') \
+        .select(df_al_json['acl_id_int'].alias('acl_id_01'), df_serv_ch['serviceCharacteristic0_value'].alias('ausbaustandgf'))
 
-        df_Kooperationspartner = df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Kooperationspartner') \
-        .select(df_al_json['acl_id_int'].alias('acl_id_02'), df_serv_ch['serviceCharacteristic_value'].alias('kooperationspartner'))
+        df_Kooperationspartner = df_serv_ch.filter(df_serv_ch['serviceCharacteristic0_name'] =='Kooperationspartner') \
+        .select(df_al_json['acl_id_int'].alias('acl_id_02'), df_serv_ch['serviceCharacteristic0_value'].alias('kooperationspartner'))
 
-        df_Technologie= df_serv_ch.filter(df_serv_ch['serviceCharacteristic_name'] =='Technologie') \
-        .select(df_al_json['acl_id_int'].alias('acl_id_03'), df_serv_ch['serviceCharacteristic_value'].alias('technologie'))
+        df_Technologie= df_serv_ch.filter(df_serv_ch['serviceCharacteristic0_name'] =='Technologie') \
+        .select(df_al_json['acl_id_int'].alias('acl_id_03'), df_serv_ch['serviceCharacteristic0_value'].alias('technologie'))
 
         #df_AusbaustandGF.show()
         #df_Kooperationspartner.show()
@@ -215,7 +228,6 @@ class FACToClProcess(IProcess):
                     df_al_json['address_type'],
 
                     df_AusbaustandGF['ausbaustandgf'],
-                    #df_al_json['ausbaustandgf'],
 
                     df_al_json['planbeginngfausbau'],
                     df_al_json['planendegfausbau'],
@@ -223,7 +235,6 @@ class FACToClProcess(IProcess):
                     df_Kooperationspartner['kooperationspartner'],
 
                     df_Technologie['technologie'],
-                    #df_al_json['technologie'],
 
                     df_al_json['bdmp_loadstamp'],
                     df_al_json['bdmp_id'],
@@ -256,3 +267,48 @@ class FACToClProcess(IProcess):
 
         return df_cl_tmagic
 
+    # this function parsing  serviceCharacteristic ARRAY - in progress
+    def parse_jsn_serviceCharacteristic(self, df_in_fac):
+
+        df_fac_json = df_in_fac
+
+        # debug,  print dataTypes
+        for name, dtype in df_fac_json.dtypes:
+            print(name, dtype)
+
+
+        ####  struct:  serviceCharacteristic[]
+
+        #  service.serviceCharacteristic
+
+        # search column , need to know Data-type (struct) of  array[struct<......>]
+        serviceCharacteristic_dtype = ''
+        for name, dtype in df_fac_json.dtypes:
+            if name == 'json_serviceCharacteristic':
+                serviceCharacteristic_dtype = dtype
+                print(name, dtype)
+                break
+
+        # testing, dtype   array<struct<@baseType:string,@schemaLocation:string,@type:string,name:string,value:string,valueType:string>>
+        # parsing atribute name with char "@atrributeName" - this is problem,,,,
+
+        #create dataFrame,
+        serviceCharacteristic_schema2 = StructType([StructField('baseType', StringType()),
+                          StructField('schemaLocation', StringType()),
+                          StructField('type', StringType()),
+                          StructField('name', StringType()),
+                          StructField('value', StringType()),
+                         ])
+
+            #'array<struct<baseType:string,schemaLocation:string,type:string,name:string,value:string,valueType:string>>'
+
+        #  ??  TypeError: Column is not iterable
+        #df_ServChar = self.spark_app.get_spark().createDataFrame(df_fac_json['__json_serviceCharacteristic'], serviceCharacteristic_schema2)
+
+
+        #df_ServChar.printSchema()
+        #df_ServChar.show(10,False)
+
+
+        #### logic is not finished, empty return
+        return None

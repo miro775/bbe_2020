@@ -9,12 +9,19 @@ FAC_v2_eligibilityUnavailabilityReasonCode  = 'json_data.availabilityCheckCalled
 FAC_v2_eligibilityUnavailabilityReasonLabel = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label'
 
 # address_type
-FAC_v2__place  = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]'
-FAC_v2__place_struct = '$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]'
+FAC_v2__place_0  = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]'
+#FAC_v2__place_struct = '$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]'
 
 # serviceCharacteristic
 # syntax for get_json_object():         "$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]"
-FAC_v2__serviceCharacteristic = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0]'
+# ?? FAC_v2__json_serviceCharacteristic = "$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
+#FAC_v2__json_serviceCharacteristic = "json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
+FAC_v2__json_serviceCharacteristic = "json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
+#FAC_v2__json_serviceCharacteristic = "$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
 
-FAC_v2__serviceCharacteristic_name ="json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].name"
-FAC_v2__serviceCharacteristic_value ="json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].value"
+#  service.serviceCharacteristic -  this struct contains fields with "@" in name !!
+#  character @ is problem!,,   array<struct<@baseType:string,@schemaLocation:string,@type:string,name:string,value:string,valueType:string>>
+
+
+FAC_v2__serviceCharacteristic0_name ="json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].name"
+FAC_v2__serviceCharacteristic0_value ="json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].value"

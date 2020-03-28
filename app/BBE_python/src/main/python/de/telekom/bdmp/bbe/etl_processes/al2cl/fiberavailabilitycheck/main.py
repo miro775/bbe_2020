@@ -18,8 +18,8 @@ if __name__ == '__main__':
     fac_process_node = FACProcessNode(fac_to_cl_process)
 
     tree_etl_runner = TreeEtlRunner([fac_process_node])
-    # if tree_etl_runner.run() == 3:
-    #    raise Exception('RUN FAILED')
+    #if tree_etl_runner.run() == 3:
+     #   raise Exception('RUN FAILED')
     tree_etl_runner.run()
 
     spark_app.stop()
