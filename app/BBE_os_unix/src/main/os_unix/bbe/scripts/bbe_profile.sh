@@ -71,5 +71,5 @@ export BBE_HDFS_APP_HIVE_UDF="${BBE_HDFS_APP_HIVE}/udf"
 
 export BBE_JARS="${BBE_JAVA}/lib"
 export BBE_JAVA_RESOURCES="${BBE_JAVA}/resources"
-# bbe-classpath , disabled 28.11.2019, miro, enabled again 30.3.2020-test
+# bbe-classpath , disabled 28.11.2019, miro, enabled again 30.3.2020,  fixed bbe_functions.sh
 export BBE_CLASSPATH=`get_bbe_classpath`

@@ -6,8 +6,9 @@
 # Description:   Additional bash functions for BBE_DATA
 #
 # ---------------------------------------------------------------------------
+# wrong name [get_bbe_data_classpath]  fixed to [get_bbe_classpath] , 30.3.2020
 
-function get_bbe_data_classpath () {
+function get_bbe_classpath () {
 # -----------------------------------------------------
 # Description:	Print BBE Java classpath
 # -----------------------------------------------------
