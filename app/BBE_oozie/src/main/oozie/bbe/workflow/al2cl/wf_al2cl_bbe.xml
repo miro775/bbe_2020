@@ -30,6 +30,14 @@
         <sub-workflow>
             <app-path>${workflowBase}/entities/wf_vvmarea.xml</app-path>
         </sub-workflow>
+        <ok to="subwf_fac2"/>
+        <error to="end"/>
+    </action>
+
+    <action name="subwf_fac2">
+        <sub-workflow>
+            <app-path>${workflowBase}/entities/wf_fac2.xml</app-path>
+        </sub-workflow>
         <ok to="end"/>
         <error to="end"/>
     </action>

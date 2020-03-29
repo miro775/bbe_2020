@@ -88,9 +88,9 @@ class FACToClProcess(IProcess):
         # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - FiberAvailabilityEvent V2') \
                                       & (df_input['Messageversion'] == '2') \
-                                      # & (df_input[tracked_col] > current_tracked_value))
+                                      & (df_input[tracked_col] > current_tracked_value))
 
-                                   & ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))  )  # 2rows for devlab debug
+                                   #& ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))  )  # 2rows for devlab debug
 
                                       #  testing only & ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))
 
@@ -177,8 +177,8 @@ class FACToClProcess(IProcess):
         df_al_json.show(2, False)
         #df_al_json.printSchema()
 
-        # this is IN PROGRESS ,
-        self.parse_jsn_serviceCharacteristic(df_al_json)
+        # this func. is IN PROGRESS ,  ##########  SKIP for now, miro
+        #self.parse_jsn_serviceCharacteristic(df_al_json)
 
 
         # parse FaC serviceCharacteristic[] values:
@@ -277,8 +277,14 @@ class FACToClProcess(IProcess):
     # this function parsing  serviceCharacteristic ARRAY - in progress
     def parse_jsn_serviceCharacteristic(self, df_in_fac):
 
-        df_serv_json = df_in_fac.select(df_in_fac['acl_id_int'],
-                                        df_in_fac['json_serviceCharacteristic'])
+        # test1, no where filter
+        df_serv_json = df_in_fac.select(df_in_fac['acl_id_int'],df_in_fac['json_serviceCharacteristic'])
+
+        # test2, where 'acl_id_int' = '5932772'  or  200049771
+        df_serv_json = df_in_fac.filter(df_in_fac['acl_id_int'] == '200049771').\
+            select('acl_id_int', 'json_serviceCharacteristic')
+
+
         df_serv_json.show(2,False)
 
 
@@ -310,7 +316,6 @@ class FACToClProcess(IProcess):
 
         jsonschema2.printSchema()
 
-
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
         df_sch = df_serv_json.withColumn('json_data', F.from_json(F.col('json_serviceCharacteristic'), jsonschema2.schema)) \
@@ -320,7 +325,15 @@ class FACToClProcess(IProcess):
             F.col('json_data.value').alias('s_value')
         )
 
-        df_sch.show(20,False)
+        df_sch.show(20, False)
+
+        df_sch2 = df_serv_json.select(
+            df_serv_json['acl_id_int'].alias('acl_id_sch2'),
+            F.get_json_object(df_serv_json['json_serviceCharacteristic'],"$.[]").alias('CH_name'),
+            F.get_json_object(df_serv_json['json_serviceCharacteristic'],'$.value').alias('CH_value')
+        )
+
+        df_sch2.show(20,False)
 
 
 

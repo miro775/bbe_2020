@@ -83,7 +83,7 @@ class TMagicToClProcess(IProcess):
 
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
-        if df_al.rdd.isEmpty():
+        if df_al._new_records_count==0:
             self.log.debug('### logic of process \'{0}\' , input-dataFrame is empty, no new data'.format(self.name))
             return None
 
@@ -114,9 +114,12 @@ class TMagicToClProcess(IProcess):
             F.from_unixtime(F.col('json_data.plannedTo')[0:10]).alias('plannedTo_ISO'),
 
             # parse json, for 3new columns, 25.3.2020
-            F.lit(None).alias('threshold'),
-            F.lit(None).alias('orderscountinvvm'),
-            F.lit(None).alias('additionalorderscountinvvm'),
+            #F.lit(None).alias('threshold'),
+            #F.lit(None).alias('orderscountinvvm'),
+            #F.lit(None).alias('additionalorderscountinvvm'),
+            F.col('thresholdData.threshold').alias('threshold'),
+            F.col('thresholdData.ordersCountInVVM').alias('orderscountinvvm'),
+            F.col('thresholdData.additionalOrdersCountInVVM').alias('additionalorderscountinvvm'),
 
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
