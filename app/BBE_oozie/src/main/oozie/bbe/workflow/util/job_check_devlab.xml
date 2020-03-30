@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   ===========================================================================
+   BBE
+
+   # BBE_OOZIE_WORKFLOW=/nfs/bdmp/d171/app/oozie/bbe/workflow
+   # BBE_HDFS_APP_OOZIE=/bdmp/app/d171/oozie/bbe
+   ===========================================================================
+   Configuration file for AL2CL etl coordinator
+
+
+   ===========================================================================
+-->
+<configuration>
+   <property>
+      <name>oozie.libpath</name>
+      <value>/bdmp/app/${bdmpEnv}/oozie/jars,/bdmp/app/${bdmpEnv}/oozie/conf</value>
+   </property>
+   <property>
+      <name>oozie.coord.application.path</name>
+      <value>${workflowBase}/co_check_devlab.xml</value>
+   </property>
+   <property>
+      <name>oozie.credentials.skip</name>
+      <value>true</value>
+   </property>
+    <property>
+      <name>coordFrequency</name>
+      <value>${frequency}</value>
+   </property>
+    <property>
+      <name>etlProcessesFolder</name>
+      <value>${scriptFolder}</value>
+   </property>
+    <property>
+      <name>coordStart</name>
+      <value>${start}</value>
+   </property>
+    <property>
+      <name>coordEnd</name>
+      <value>${end}</value>
+   </property>
+</configuration>
+<!--
+   ===========================================================================
+   End of job xml file
+   ===========================================================================
+-->

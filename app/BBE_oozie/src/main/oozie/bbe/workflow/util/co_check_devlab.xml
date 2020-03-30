@@ -1,0 +1,14 @@
+<coordinator-app
+  name="co_al2cl_bbe"
+  frequency="${coordFrequency}"
+  start="${coordStart}"
+  end="${coordEnd}"
+  timezone="Europe/Berlin"
+  xmlns="uri:oozie:coordinator:0.2"
+  >
+  <action>
+    <workflow>
+      <app-path>${workflowBase}/wf_check_devlab.xml</app-path>
+   </workflow>
+  </action>
+</coordinator-app>
