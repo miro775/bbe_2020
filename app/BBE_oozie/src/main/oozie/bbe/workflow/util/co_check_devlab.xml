@@ -1,5 +1,5 @@
 <coordinator-app
-  name="co_al2cl_bbe"
+  name="co_check_devlab_d171"
   frequency="${coordFrequency}"
   start="${coordStart}"
   end="${coordEnd}"

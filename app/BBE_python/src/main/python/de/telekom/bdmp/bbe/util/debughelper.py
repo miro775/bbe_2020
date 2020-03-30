@@ -17,7 +17,7 @@ class Spark():
     # Creating spark session
     spark = SparkSession \
         .builder \
-        .appName("Pyspark Hivemetastore") \
+        .appName("Pyspark d171-env-test-miro") \
         .config("spark.history.kerberos.enabled", "true") \
         .config("spark.yarn.keytab", keytab) \
         .config("spark.yarn.principal", principal) \
@@ -27,7 +27,7 @@ class Spark():
         .getOrCreate()
 
     # spark context:
-    print("[ Hello world ] test the Spark context:")
+    print("[ .Hello world. ] test the Spark context:")
     print(spark.version)
 
     # stoping the spark session
