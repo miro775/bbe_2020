@@ -39,12 +39,13 @@ class FACToClProcess(IProcess):
         self._db_out = DB_BBE_CORE
         self._out_table_name = 'cl_f_fiberavailabilitycheck_mt'
 
+        self.max_acl_dop_val = 0
+        self.new_records_count = 0
+
 
         IProcess.__init__(self, self._etl_process_name, self._in_table_name, self._out_table_name,
                              save_dfs_if_exc=save_dfs_if_exc, persist_result_dfs=persist_result_dfs)
 
-        self._max_acl_dop_val = 0
-        self._new_records_count = 0
 
 
     def prepare_input_dfs(self, in_dfs):
@@ -55,8 +56,6 @@ class FACToClProcess(IProcess):
         # Df creator class
         df_creator = DfCreator(self.spark_app.get_spark())
 
-        # DWHM
-        #df_input_vvmarea = df_creator.get_df(database=DB_BBE_BASE, table='al_gigabit_message_mt')
         df_input = df_creator.get_df(self._db_in,  self._in_table_name)
 
         self.log.debug('### Preparation of input data frames of process \'{0}\' started'.format(self.name))
@@ -79,10 +78,10 @@ class FACToClProcess(IProcess):
             self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
 
         # compute max value of acl_dop - needed for next transformation
-        self._max_acl_dop_val = df_input.agg(F.max(df_input[tracked_col]).alias('max')).collect()[0][0]
+        self.max_acl_dop_val = df_input.agg(F.max(df_input[tracked_col]).alias('max')).collect()[0][0]
 
         self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'.\
-                       format(self.name,current_tracked_value,self._max_acl_dop_val))
+                       format(self.name,current_tracked_value,self.max_acl_dop_val))
 
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
@@ -96,12 +95,12 @@ class FACToClProcess(IProcess):
 
 
 
-        self._new_records_count = df_al.count()
-        self.log.debug('### in_df, records count= \'{0}\' '.format(self._new_records_count))
+        self.new_records_count = df_al.count()
+        self.log.debug('### in_df, records count= \'{0}\'  ,process {1},'.format(self.new_records_count,self.name))
 
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
-        if self._new_records_count==0:
+        if self.new_records_count==0:
             self.log.debug('### logic of process \'{0}\' , input-dataFrame is empty, no new data'.format(self.name))
             return None
 
@@ -174,7 +173,7 @@ class FACToClProcess(IProcess):
 
         )
 
-        df_al_json.show(2, False)
+        #df_al_json.show(2, False)
         #df_al_json.printSchema()
 
         # this func. is IN PROGRESS ,  ##########  SKIP for now, miro
@@ -269,7 +268,7 @@ class FACToClProcess(IProcess):
           spark_io.df2hive(df_cl_tmagic, DB_BBE_CORE, self._out_table_name , overwrite=False)
 
         Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
-                                           self._in_table_name, self._max_acl_dop_val)
+                                           self._in_table_name, self.max_acl_dop_val)
 
 
         return df_cl_tmagic

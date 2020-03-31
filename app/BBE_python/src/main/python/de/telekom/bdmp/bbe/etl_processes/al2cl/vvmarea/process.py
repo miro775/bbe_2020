@@ -32,12 +32,13 @@ class TMagicToClProcess(IProcess):
         self._db_out = DB_BBE_CORE
         self._out_table_name = 'cl_f_vvmarea_mt'
 
+        self.max_acl_dop_val = 0
+        self.new_records_count = 0
+
 
         IProcess.__init__(self, self._etl_process_name, self._in_table_name, self._out_table_name,
                              save_dfs_if_exc=save_dfs_if_exc, persist_result_dfs=persist_result_dfs)
 
-        self._max_acl_dop_val = 0
-        self._new_records_count = 0
 
 
     def prepare_input_dfs(self, in_dfs):
@@ -69,21 +70,22 @@ class TMagicToClProcess(IProcess):
             self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
 
         # compute max value of acl_dop - needed for next transformation
-        self._max_acl_dop_val = df_input_vvmarea.agg(F.max(df_input_vvmarea[tracked_col]).alias('max')).collect()[0][0]
+        self.max_acl_dop_val = df_input_vvmarea.agg(F.max(df_input_vvmarea[tracked_col]).alias('max')).collect()[0][0]
 
         self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'.\
-                       format(self.name,current_tracked_value,self._max_acl_dop_val))
+                       format(self.name,current_tracked_value,self.max_acl_dop_val))
 
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input_vvmarea.filter((df_input_vvmarea['messagetype'] == 'DigiOSS - vvmArea') \
                                       & (df_input_vvmarea['Messageversion'] == '1') \
                                       & (df_input_vvmarea[tracked_col] > current_tracked_value))
 
-        self._new_records_count = df_al.count()
+        self.new_records_count = df_al.count()
+        self.log.debug('### in_df, records count= \'{0}\'  ,process {1},'.format(self.new_records_count,self.name))
 
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
-        if df_al._new_records_count==0:
+        if self.new_records_count==0:
             self.log.debug('### logic of process \'{0}\' , input-dataFrame is empty, no new data'.format(self.name))
             return None
 
@@ -126,12 +128,6 @@ class TMagicToClProcess(IProcess):
             F.col('bdmp_area_id')
         )
 
-        #common_transform = CommonTransform()
-
-        #df_cl_d_dwhm_bestand_ps = common_transform.trans_al2cl(df_al_d_dwhm_bestand_ps)
-        #df_cl_d_dwhm_push_ps = common_transform.trans_al2cl(df_al_d_dwhm_push_ps)
-
-        #return [df_cl_d_dwhm_bestand_ps, df_cl_d_dwhm_push_ps]
         return  df_al_json
 
     def handle_output_dfs(self, out_dfs):
@@ -151,7 +147,7 @@ class TMagicToClProcess(IProcess):
           spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, self._out_table_name , overwrite=False)
 
         Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
-                                           self._in_table_name, self._max_acl_dop_val)
+                                           self._in_table_name, self.max_acl_dop_val)
 
 
         return df_cl_tmagic_vvm_area
