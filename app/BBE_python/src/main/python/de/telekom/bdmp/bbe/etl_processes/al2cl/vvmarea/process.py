@@ -119,9 +119,9 @@ class TMagicToClProcess(IProcess):
             #F.lit(None).alias('threshold'),
             #F.lit(None).alias('orderscountinvvm'),
             #F.lit(None).alias('additionalorderscountinvvm'),
-            F.col('thresholdData.threshold').alias('threshold'),
-            F.col('thresholdData.ordersCountInVVM').alias('orderscountinvvm'),
-            F.col('thresholdData.additionalOrdersCountInVVM').alias('additionalorderscountinvvm'),
+            F.col('json_data.thresholdData.threshold').alias('threshold'),
+            F.col('json_data.thresholdData.ordersCountInVVM').alias('orderscountinvvm'),
+            F.col('json_data.thresholdData.additionalOrdersCountInVVM').alias('additionalorderscountinvvm'),
 
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
