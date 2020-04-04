@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   ===========================================================================
+   BDMP
+   ===========================================================================
+   ===========================================================================
+   Beschreibung: Workflow running BBE AL2CL etl processes
+   ===========================================================================
+-->
+<workflow-app
+        xmlns="uri:oozie:workflow:0.5"
+        name="wf_al2cl_bbe_process">
+    <global>
+        <job-tracker>${jobTracker}</job-tracker>
+        <name-node>${nameNode}</name-node>
+        <configuration>
+            <property>
+                <name>bdmpScripts</name>
+                <value>${bdmpScripts}</value>
+            </property>
+            <property>
+                <name>etlProcessesFolder</name>
+                <value>${etlProcessesFolder}</value>
+            </property>
+        </configuration>
+    </global>
+    <start to="act_vvmarea"/>
+
+
+
+
+    <action name="act_vvmarea">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/vvmarea/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_fac2"/>
+        <error to="kill"/>
+    </action>
+
+
+    <action name="act_fac2">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/fiberavailabilitycheck/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="end"/>
+        <error to="kill"/>
+    </action>
+
+    <action name="subwf_vvmarea">
+        <sub-workflow>
+            <app-path>${workflowBase}/entities/wf_vvmarea.xml</app-path>
+        </sub-workflow>
+        <ok to="subwf_fac2"/>
+        <error to="end"/>
+    </action>
+
+    <action name="subwf_fac2">
+        <sub-workflow>
+            <app-path>${workflowBase}/entities/wf_fac2.xml</app-path>
+        </sub-workflow>
+        <ok to="end"/>
+        <error to="end"/>
+    </action>
+
+
+    <kill name="kill">
+        <message>Action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+
+	
+    <end name="end"/>
+</workflow-app>

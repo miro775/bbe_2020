@@ -1,0 +1,14 @@
+<coordinator-app
+  name="co_demo_bb1"
+  frequency="${coordFrequency}"
+  start="${coordStart}"
+  end="${coordEnd}"
+  timezone="Europe/Berlin"
+  xmlns="uri:oozie:coordinator:0.2"
+  >
+  <action>
+    <workflow>
+      <app-path>${workflowBase}/wf_demo_bbe1.xml</app-path>
+   </workflow>
+  </action>
+</coordinator-app>

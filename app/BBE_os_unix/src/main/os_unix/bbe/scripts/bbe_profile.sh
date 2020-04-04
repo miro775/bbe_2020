@@ -32,8 +32,6 @@
 # NFS 
 # ####################
 
-export BBE_HBASE="${BDMP_APP}/hbase/bbe"
-export BBE_HBASE_SCRIPTS="${BBE_HBASE}/scripts"
 export BBE_HIVE="${BDMP_APP}/hive/bbe" 
 export BBE_HIVE_HQL="${BBE_HIVE}/hql"
 export BBE_HIVE_SCHEMA="${BBE_HIVE}/schema"
@@ -65,7 +63,7 @@ export BBE_HDFS_APP_HIVE_SCHEMA_MANAGED="${BBE_HDFS_APP_HIVE}/schema/managed"
 export BBE_HDFS_APP_OOZIE="${BDMP_HDFS_APP}/oozie/bbe"
 export BBE_HDFS_APP_OOZIE_WORKFLOW="${BBE_HDFS_APP_OOZIE}/workflow"
 export BBE_HDFS_APP_TMP="${BDMP_HDFS_APP}/tmp"
-# export BBE_HDFS_APP_HIVE_UDF="${BBE_HDFS_APP_HIVE}/udf"
+export BBE_HDFS_APP_HIVE_UDF="${BBE_HDFS_APP_HIVE}/udf"
 
 # ####################
 # Java 
@@ -73,4 +71,5 @@ export BBE_HDFS_APP_TMP="${BDMP_HDFS_APP}/tmp"
 
 export BBE_JARS="${BBE_JAVA}/lib"
 export BBE_JAVA_RESOURCES="${BBE_JAVA}/resources"
-# export BBE_CLASSPATH=`get_bbe_classpath` # disabled 28.11.2019, miro
+# bbe-classpath , disabled 28.11.2019, miro, enabled again 30.3.2020,  fixed bbe_functions.sh
+export BBE_CLASSPATH=`get_bbe_classpath`

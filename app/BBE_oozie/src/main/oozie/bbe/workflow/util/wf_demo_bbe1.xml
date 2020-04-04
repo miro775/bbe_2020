@@ -1,0 +1,26 @@
+<workflow-app
+   xmlns="uri:oozie:workflow:0.5"
+   name="wf-demo-bbe1">
+   <global>
+      <job-tracker>${jobTracker}</job-tracker>
+      <name-node>${nameNode}</name-node>
+   </global>
+   <start to="action-demo-bbe1" />
+   <action name="action-demo-bbe1">
+      <python xmlns="uri:oozie:bdmp-python-action:0.1">
+         <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+         <script>de/telekom/bdmp/bbe/util/demo_bbe_copy_data.py</script>
+         <arg>--bdmp</arg>
+         <debug-sleep-begin>0</debug-sleep-begin>
+         <debug-sleep-end>0</debug-sleep-end>
+         <log-level>DEBUG</log-level>
+         <capture-output />
+      </python>
+      <ok to="end" />
+      <error to="fail" />
+   </action>
+   <kill name="fail">
+      <message>Python failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+   </kill>
+   <end name="end" />
+</workflow-app>

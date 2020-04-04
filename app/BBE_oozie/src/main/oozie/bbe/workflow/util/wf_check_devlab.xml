@@ -1,0 +1,26 @@
+<workflow-app
+   xmlns="uri:oozie:workflow:0.5"
+   name="wf-check">
+   <global>
+      <job-tracker>${jobTracker}</job-tracker>
+      <name-node>${nameNode}</name-node>
+   </global>
+   <start to="py-check" />
+   <action name="py-check">
+      <python xmlns="uri:oozie:bdmp-python-action:0.1">
+         <bdmp-scripts>/nfs/bdmp/d171/app/os_unix/bdmf/scripts</bdmp-scripts>
+         <script>de/telekom/bdmp/bbe/util/debughelper.py</script>
+         <arg>--bdmp</arg>
+         <debug-sleep-begin>0</debug-sleep-begin>
+         <debug-sleep-end>0</debug-sleep-end>
+         <log-level>DEBUG</log-level>
+         <capture-output />
+      </python>
+      <ok to="end" />
+      <error to="fail" />
+   </action>
+   <kill name="fail">
+      <message>Python failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+   </kill>
+   <end name="end" />
+</workflow-app>

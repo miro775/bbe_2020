@@ -1,0 +1,15 @@
+#!/bin/bash
+
+oozie job -oozie ${OOZIE_URL} \
+ -config ${BBE_OOZIE_WORKFLOW}/al2cl/job_al2cl_bbe.xml \
+ -DjobTracker=${BDMP_YARN_RESOURCEMANAGER} \
+ -DbdmpScripts=${BDMF_SCRIPTS} \
+ -DworkflowBase=${BDMP_HDFS_NAMENODE}${BBE_HDFS_APP_OOZIE}/workflow/al2cl \
+ -Dstart=2020-03-31T20:00Z \
+ -Dend=2020-04-01T22:59Z \
+ -DbdmpEnv=${BDMP_ENV} \
+ -Dfrequency="1440" \
+ -DscriptFolder="de/telekom/bdmp/bbe/etl_processes/al2cl" \
+ -run -DnameNode=${BDMP_HDFS_NAMENODE}
+
+exit 0
