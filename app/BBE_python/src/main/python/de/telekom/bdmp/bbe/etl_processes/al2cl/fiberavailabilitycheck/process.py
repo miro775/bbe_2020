@@ -151,7 +151,7 @@ class FACToClProcess(IProcess):
             # varianta 2: syntax for F.get_json_object()  ,  dtype will be:  string
             F.get_json_object('jsonstruct', FAC_v2__json_serviceCharacteristic_x2).alias('json_serviceCharacteristic'),
             # varianta 1 : syntax for F.expr() ,  dtype will be :  array<struct.....
-            #F.expr( FAC_v2__json_serviceCharacteristic_x1).alias('json_serviceCharacteristic'),
+            F.expr( FAC_v2__json_serviceCharacteristic_x1).alias('json_serviceCharacteristic_array'),
 
 
 
@@ -176,8 +176,9 @@ class FACToClProcess(IProcess):
         #df_al_json.show(2, False)
         #df_al_json.printSchema()
 
-        # this func. is IN PROGRESS ,  ##########  SKIP for now, miro
-        #self.parse_jsn_serviceCharacteristic(df_al_json)
+        # this func. is IN PROGRESS ,  ##########   miro
+        # explode to : service_name, service_value
+        df_serv_ch = self.parse_jsn_serviceCharacteristic(df_al_json)
 
 
         # parse FaC serviceCharacteristic[] values:
@@ -189,21 +190,29 @@ class FACToClProcess(IProcess):
         #  "Geplantes Ende Glasfaser-Ausbau"
         #  "Kooperationspartner"
         #  "Technologie"
-        df_serv_ch = df_al_json.select(df_al_json['acl_id_int'],
-                                       df_al_json['serviceCharacteristic0_name'],
-                                       df_al_json['serviceCharacteristic0_value'])
+        #df_serv_ch = df_al_json.select(df_al_json['acl_id_int'],
+        #                               df_al_json['serviceCharacteristic0_name'],
+        #                               df_al_json['serviceCharacteristic0_value'])
 
         #df_serv_ch.show(10,False)
 
         # add aliases to columns to have unique columns name....
-        df_AusbaustandGF = df_serv_ch.filter(df_serv_ch['serviceCharacteristic0_name'] =='Ausbaustand Glasfaser') \
-        .select(df_al_json['acl_id_int'].alias('acl_id_01'), df_serv_ch['serviceCharacteristic0_value'].alias('ausbaustandgf'))
+        df_AusbaustandGF = df_serv_ch.filter(df_serv_ch['service_name'] =='Ausbaustand Glasfaser') \
+        .select(df_serv_ch['acl_id_int'].alias('acl_id_01'), df_serv_ch['service_value'].alias('ausbaustandgf'))
 
-        df_Kooperationspartner = df_serv_ch.filter(df_serv_ch['serviceCharacteristic0_name'] =='Kooperationspartner') \
-        .select(df_al_json['acl_id_int'].alias('acl_id_02'), df_serv_ch['serviceCharacteristic0_value'].alias('kooperationspartner'))
+        df_Kooperationspartner = df_serv_ch.filter(df_serv_ch['service_name'] =='Kooperationspartner') \
+        .select(df_serv_ch['acl_id_int'].alias('acl_id_02'), df_serv_ch['service_value'].alias('kooperationspartner'))
 
-        df_Technologie= df_serv_ch.filter(df_serv_ch['serviceCharacteristic0_name'] =='Technologie') \
-        .select(df_al_json['acl_id_int'].alias('acl_id_03'), df_serv_ch['serviceCharacteristic0_value'].alias('technologie'))
+        df_Technologie= df_serv_ch.filter(df_serv_ch['service_name'] =='Technologie') \
+        .select(df_serv_ch['acl_id_int'].alias('acl_id_03'), df_serv_ch['service_value'].alias('technologie'))
+
+        df_AusbaustandGF.show(20,False)
+        df_Kooperationspartner.show(20,False)
+        df_Technologie.show(20,False)
+
+
+
+
 
         #df_AusbaustandGF.show()
         #df_Kooperationspartner.show()
@@ -247,7 +256,7 @@ class FACToClProcess(IProcess):
                     df_al_json['bdmp_area_id']
                    )
 
-        #df_FAC2.show(2,False)
+        df_FAC2.show(20,False)
 
         return  df_FAC2
 
@@ -273,73 +282,26 @@ class FACToClProcess(IProcess):
 
         return df_cl_tmagic
 
-    # this function parsing  serviceCharacteristic ARRAY - in progress
+    # this function parsing/explode  serviceCharacteristic ARRAY - in progress
     def parse_jsn_serviceCharacteristic(self, df_in_fac):
 
         # test1, no where filter
-        df_serv_json = df_in_fac.select(df_in_fac['acl_id_int'],df_in_fac['json_serviceCharacteristic'])
+        #df_serv_json = df_in_fac.select(df_in_fac['acl_id_int'],df_in_fac['json_serviceCharacteristic_array'])
 
         # test2, where 'acl_id_int' = '5932772'  or  200049771
-        df_serv_json = df_in_fac.filter(df_in_fac['acl_id_int'] == '200049771').\
-            select('acl_id_int', 'json_serviceCharacteristic')
+        # #  testing only & ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))
+        df_serv_json = df_in_fac.filter((df_in_fac['acl_id_int'] == '200049771') | (df_in_fac['acl_id_int'] == '5932772')).\
+            select('acl_id_int', 'json_serviceCharacteristic_array')
+
+        df_serv_json = df_serv_json.withColumn('explod_serviceCharacteristic',F.explode("json_serviceCharacteristic_array"))
+
+        df_ServiceChar = df_serv_json.select(F.col('acl_id_int'),
+                                    F.col('explod_serviceCharacteristic.name').alias('service_name'),
+                                    F.col('explod_serviceCharacteristic.value').alias('service_value')
+                                    )
 
 
-        df_serv_json.show(2,False)
+        df_ServiceChar.show(20,False)
 
-
-        # debug,  print dataTypes
-        for name, dtype in df_serv_json.dtypes:
-            print(name, dtype)
-
-
-        ####  struct:  serviceCharacteristic[]
-
-        #  service.serviceCharacteristic
-
-        # search column , need to know Data-type (struct) of  array[struct<......>]
-        serviceCharacteristic_dtype = ''
-        #for name, dtype in df_serv_json.dtypes:
-        #    if name == 'json_serviceCharacteristic':
-        #        serviceCharacteristic_dtype = dtype
-        #        print(name, dtype)
-        #        break
-
-        # testing, dtype   array<struct<@baseType:string,@schemaLocation:string,@type:string,name:string,value:string,valueType:string>>
-        # parsing atribute name with char "@atrributeName" - this is problem,,,,
-
-
-
-        # 'JSON.schema' as StructType ,  from column: jsonstruct
-        jsonschema2 = self.spark_app.get_spark().read.\
-            json(df_serv_json.rdd.map(lambda row: row.json_serviceCharacteristic))  #.schema
-
-        jsonschema2.printSchema()
-
-        # new dataframe , select columns for target table , using values from json....
-        # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
-        df_sch = df_serv_json.withColumn('json_data', F.from_json(F.col('json_serviceCharacteristic'), jsonschema2.schema)) \
-            .select(
-            df_serv_json['acl_id_int'].alias('acl_id_sch'),
-            F.col('json_data.name').alias('s_name'),
-            F.col('json_data.value').alias('s_value')
-        )
-
-        df_sch.show(20, False)
-
-        df_sch2 = df_serv_json.select(
-            df_serv_json['acl_id_int'].alias('acl_id_sch2'),
-            F.get_json_object(df_serv_json['json_serviceCharacteristic'],"$.[]").alias('CH_name'),
-            F.get_json_object(df_serv_json['json_serviceCharacteristic'],'$.value').alias('CH_value')
-        )
-
-        df_sch2.show(20,False)
-
-
-
-
-        #df_ServChar.printSchema()
-        #df_ServChar.show(10,False)
-
-
-        #### logic is not finished, empty return
-        return None
+        ####
+        return df_ServiceChar
