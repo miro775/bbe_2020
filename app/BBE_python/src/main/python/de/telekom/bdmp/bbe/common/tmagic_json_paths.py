@@ -24,3 +24,18 @@ FAC_v2__json_serviceCharacteristic_x2 = "$.availabilityCheckCalledEvent.eventPay
 
 FAC_v2__serviceCharacteristic0_name ="json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].name"
 FAC_v2__serviceCharacteristic0_value ="json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic[0].value"
+
+## [SOE] ServiceOrder_Event
+SOE_SO_ID='json_data.event.ServiceOrder.id'
+SOE_externalId_ps='json_data.event.ServiceOrder.externalId'
+SOE_priority='json_data.event.ServiceOrder.priority'
+SOE_description='json_data.event.ServiceOrder.description'
+SOE_category='json_data.event.ServiceOrder.category'
+SOE_state='json_data.event.ServiceOrder.state'
+
+SOE_orderDate='json_data.event.ServiceOrder.orderDate'
+SOE_completionDate='json_data.event.ServiceOrder.completionDate'
+SOE_requestedStartDate='json_data.event.ServiceOrder.requestedStartDate'
+SOE_requestedCompletionDate='json_data.event.ServiceOrder.requestedCompletionDate'
+SOE_expectedCompletionDate='json_data.event.ServiceOrder.expectedCompletionDate'
+SOE_startDate='json_data.event.ServiceOrder.startDate'
