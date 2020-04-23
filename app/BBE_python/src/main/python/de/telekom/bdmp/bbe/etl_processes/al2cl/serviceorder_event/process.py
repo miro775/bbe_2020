@@ -1,7 +1,7 @@
 import de.telekom.bdmp.pyfw.etl_framework.util as util
 from de.telekom.bdmp.pyfw.etl_framework.iprocess import IProcess
 from de.telekom.bdmp.pyfw.etl_framework.dfcreator import DfCreator
-from de.telekom.bdmp.bbe.common.bdmp_constants import DB_BBE_BASE, DB_BBE_CORE
+from de.telekom.bdmp.bbe.common.bdmp_constants import WF_AL2CL , DB_BBE_BASE, DB_BBE_CORE
 
 from de.telekom.bdmp.bbe.common.tmagic_json_paths import *
 import de.telekom.bdmp.bbe.common.functions as Func
@@ -73,20 +73,28 @@ class SOEToClProcess(IProcess):
         self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'. \
                        format(self.name, current_tracked_value, self.max_acl_dop_val))
 
+        Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
+                                   'logic of process started','current_tracked_value={0}, max_acl_dop={1}'. \
+                                   format(current_tracked_value, self.max_acl_dop_val),'100')
+
         # messagetype = 'DigiOSS - ServiceOrderEvent' OR messagetype = 'SOSI - ServiceOrderEvents'
 
         # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - ServiceOrderEvent') \
                                 & (df_input['Messageversion'] == '1') \
-                                # & (df_input[tracked_col] > current_tracked_value))
+                              & (df_input[tracked_col] > current_tracked_value))
 
-                                & ((df_input['acl_id'] == '210149') | (
-                    df_input['acl_id'] == '210167')))  # 2rows for devlab debug
-        #  acl_id in ('210149' ,  '210167', '210169')
+                             #   & ((df_input['acl_id'] == '210149') | (
+                             #       df_input['acl_id'] == '210167')))  # 2rows for devlab debug
+        #devlab filter:   acl_id in ('210149' ,  '210167', '210169')
 
         self.new_records_count = df_al.count()
         self.log.debug('### in_df, records count= \'{0}\'  ,process {1},'.format(self.new_records_count, self.name))
+
+        Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
+                                   'logic of process','new_records_count={0}'. \
+                                   format(self.new_records_count),'110')
 
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
@@ -164,13 +172,20 @@ class SOEToClProcess(IProcess):
 
         # Read inputs
         df_cl_tmagic = out_dfs
+        doing_Insert=False
 
         # if dataframe doesn't have data - skip insert to table, no new data=no insert
         if df_cl_tmagic:
             spark_io.df2hive(df_cl_tmagic, DB_BBE_CORE, self._out_table_name, overwrite=False)
+            doing_Insert = True
 
         Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
                                            self._in_table_name, self.max_acl_dop_val)
+
+
+        Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
+                                   'end of process','insert table={0} ,doing_Insert={1}'. \
+                                   format(self._out_table_name,doing_Insert),'300')
 
         return df_cl_tmagic
 

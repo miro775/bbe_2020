@@ -14,3 +14,5 @@ DB_BBE_BASE = 'db{0}_bbe_base_iws'.format(my_bdmp_env)
 
 TABLE_BBE_PROCESS_TRACKING = 'cl_m_process_tracking_mt'
 TABLE_BBE_PROCESS_LOG = 'cl_m_process_log_mt'
+
+WF_AL2CL = 'al2cl'  #  workflow name, for  log table
