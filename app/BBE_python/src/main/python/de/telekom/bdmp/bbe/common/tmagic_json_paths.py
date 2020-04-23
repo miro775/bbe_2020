@@ -39,3 +39,5 @@ SOE_requestedStartDate='json_data.event.ServiceOrder.requestedStartDate'
 SOE_requestedCompletionDate='json_data.event.ServiceOrder.requestedCompletionDate'
 SOE_expectedCompletionDate='json_data.event.ServiceOrder.expectedCompletionDate'
 SOE_startDate='json_data.event.ServiceOrder.startDate'
+
+SOE_orderItem_array='json_data.event.ServiceOrder.orderItem'

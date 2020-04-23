@@ -2,7 +2,7 @@
 import de.telekom.bdmp.pyfw.etl_framework.util as util
 from de.telekom.bdmp.pyfw.etl_framework.iprocess import IProcess
 from de.telekom.bdmp.pyfw.etl_framework.dfcreator import DfCreator
-from de.telekom.bdmp.bbe.common.bdmp_constants import DB_BBE_BASE, DB_BBE_CORE
+from de.telekom.bdmp.bbe.common.bdmp_constants import WF_AL2CL, DB_BBE_BASE, DB_BBE_CORE
 
 from de.telekom.bdmp.bbe.common.tmagic_json_paths import *
 import de.telekom.bdmp.bbe.common.functions as Func
@@ -71,7 +71,7 @@ class FACToClProcess(IProcess):
 
         df_input = in_dfs
 
-        self.log.debug('### logic of process \'{0}\' started,get_max_value_from_process_tracking_table...'.format(self.name))
+        #self.log.debug('### logic of process \'{0}\' started,get_max_value_from_process_tracking_table...'.format(self.name))
 
         # retrieve information from the tracking table
         current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
@@ -82,6 +82,11 @@ class FACToClProcess(IProcess):
 
         self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'.\
                        format(self.name,current_tracked_value,self.max_acl_dop_val))
+
+        Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
+                                   'logic of process started','current_tracked_value={0}, max_acl_dop={1}'. \
+                                   format(current_tracked_value, self.max_acl_dop_val),'100')
+
 
         # filter "Fac v2" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
@@ -97,6 +102,10 @@ class FACToClProcess(IProcess):
 
         self.new_records_count = df_al.count()
         self.log.debug('### in_df, records count= \'{0}\'  ,process {1},'.format(self.new_records_count,self.name))
+
+        Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
+                                   'logic of process','new_records_count={0}'. \
+                                   format(self.new_records_count),'110')
 
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
@@ -115,7 +124,7 @@ class FACToClProcess(IProcess):
         # 'JSON.schema' as StructType ,  from column: jsonstruct
         jsonschema1 = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
 
-
+        patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
 
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
@@ -128,6 +137,7 @@ class FACToClProcess(IProcess):
             F.expr( FAC_v2_klsid_ps ).alias('klsid_ps'),
             F.col( FAC_v2_eventid ).alias('eventid'),
 
+            #F.to_timestamp(F.col(FAC_v2_eventTime), patern_timestamp_zulu).alias('requesttime_ISO'),  #fix 23.4.2020
             # temporary,  only date, truncated HH:MM:ss  because extra char "T" , fix it
             F.to_timestamp(F.col( FAC_v2_eventTime )[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
 
@@ -263,15 +273,21 @@ class FACToClProcess(IProcess):
 
         # Read inputs
         df_cl_tmagic = out_dfs
+        doing_Insert = False
 
         # test table  devlab: 'cl_tmagic_l0_vvmarea_mt'
         #spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, 'cl_f_vvmarea_mt', overwrite=True)
         # if dataframe doesn't have data - skip insert to table, no new data=no insert
         if df_cl_tmagic:
-          spark_io.df2hive(df_cl_tmagic, DB_BBE_CORE, self._out_table_name , overwrite=False)
+            spark_io.df2hive(df_cl_tmagic, DB_BBE_CORE, self._out_table_name , overwrite=False)
+            doing_Insert = True
 
         Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
                                            self._in_table_name, self.max_acl_dop_val)
+
+        Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
+                                   'end of process','insert table={0} ,doing_Insert={1}'. \
+                                   format(self._out_table_name,doing_Insert),'300')
 
 
         return df_cl_tmagic
