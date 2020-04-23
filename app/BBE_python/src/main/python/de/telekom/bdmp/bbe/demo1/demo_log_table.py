@@ -5,6 +5,8 @@ from pyspark.sql.types import *
 from datetime import datetime
 # import pyspark.sql.functions as F
 
+import de.telekom.bdmp.bbe.common.functions as Func
+
 #ts = datetime.now().strftime('%Y%m%d%H%M')
 
 
@@ -106,3 +108,8 @@ df_log3.show(1,False)
 |AL2CL   |process2|DEBUG   |2020-04-23 14:19:18.049906|dct_logdata test|text2     |text3     |
 +--------+--------+--------+--------------------------+----------------+----------+----------+
 '''
+
+
+## OK,  this works
+# select * from   db_d172_bbe_core_iws.cl_m_process_log_mt;
+Func.bbe_process_log_table(spark,'AL2CL','proc1x','INFO','text1bb','test2bb','test3bb')

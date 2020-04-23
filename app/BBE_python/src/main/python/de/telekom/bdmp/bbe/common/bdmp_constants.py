@@ -13,3 +13,4 @@ DB_BBE_CORE = 'db{0}_bbe_core_iws'.format(my_bdmp_env)
 DB_BBE_BASE = 'db{0}_bbe_base_iws'.format(my_bdmp_env)
 
 TABLE_BBE_PROCESS_TRACKING = 'cl_m_process_tracking_mt'
+TABLE_BBE_PROCESS_LOG = 'cl_m_process_log_mt'
