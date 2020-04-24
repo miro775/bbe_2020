@@ -73,10 +73,10 @@ class NvtareaToClProcess(IProcess):
 
         # filter "nvt" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - NvtArea') \
-                                # & (df_input['Messageversion'] == '1') \
-                                # & (df_input[tracked_col] > current_tracked_value))
-                                & ((df_input['acl_id'] == '185831') | (
-                    df_input['acl_id'] == '5530538')))  # 2rows for devlab debug
+                                 & (df_input['Messageversion'] == '1') \
+                                 & (df_input[tracked_col] > current_tracked_value))
+                               # & ((df_input['acl_id'] == '185831') | (
+                   # df_input['acl_id'] == '5530538')))  # 2rows for devlab debug
 
         self.new_records_count = df_al.count()
         self.log.debug('### in_df, records count= \'{0}\'  ,process {1},'.format(self.new_records_count, self.name))
