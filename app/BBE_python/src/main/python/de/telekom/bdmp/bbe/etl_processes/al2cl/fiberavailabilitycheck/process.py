@@ -125,6 +125,7 @@ class FACToClProcess(IProcess):
         jsonschema1 = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
 
         patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
+        time_zone_D="Europe/Berlin"
 
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
@@ -137,9 +138,11 @@ class FACToClProcess(IProcess):
             F.expr( FAC_v2_klsid_ps ).alias('klsid_ps'),
             F.col( FAC_v2_eventid ).alias('eventid'),
 
-            #F.to_timestamp(F.col(FAC_v2_eventTime), patern_timestamp_zulu).alias('requesttime_ISO'),  #fix 23.4.2020
+            # to_utc_timestamp(df.eventTime_ts,  "Europe/Berlin")
+            F.to_utc_timestamp(F.to_timestamp(F.col(FAC_v2_eventTime), patern_timestamp_zulu), time_zone_D)
+                .alias('requesttime_ISO'),  #fix 23.4.2020
             # temporary,  only date, truncated HH:MM:ss  because extra char "T" , fix it
-            F.to_timestamp(F.col( FAC_v2_eventTime )[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
+            #F.to_timestamp(F.col( FAC_v2_eventTime )[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
 
             F.col( FAC_v2_partyid ).alias('partyid'),
             F.lit(None).cast(StringType()).alias('errormessage'),

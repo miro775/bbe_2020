@@ -4,7 +4,7 @@
 # CustomerInstallationOrder
 from de.telekom.bdmp.pyfw.etl_framework.sparkapp import SparkApp
 from de.telekom.bdmp.pyfw.etl_framework.tree_etl import IProcessNode, TreeEtlRunner
-from de.telekom.bdmp.bbe.etl_processes.al2cl.customerinstallationorder.process import CIOToClProcess
+from de.telekom.bdmp.bbe.etl_processes.al2cl.cio.process import CIOToClProcess
 
 
 class CIO_ProcessNode(IProcessNode):

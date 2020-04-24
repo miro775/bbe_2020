@@ -80,9 +80,10 @@ class CIOToClProcess(IProcess):
         # 'IBT - CustomerInstallationOrderEvent'
         # filter "CIO" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == 'IBT - CustomerInstallationOrderEvent') \
-                                      # & (df_input['Messageversion'] == '1') \
+                                       & ((df_input['Messageversion'] == '1') | (df_input['Messageversion'] == '2')) \
                                       # & (df_input[tracked_col] > current_tracked_value))
-                                        & ((df_input['acl_id'] == '200876') | ( df_input['acl_id'] == '200877')) ) # 2rows for devlab debug
+        & ((df_input['acl_id'] == '200876') | ( df_input['acl_id'] == '200877') | ( df_input['acl_id'] == '100053771')) )
+        # 3rows for devlab debug  message v1='100053771'
 
         self.new_records_count = df_al.count()
         self.log.debug('### in_df, records count= \'{0}\'  ,process {1},'.format(self.new_records_count,self.name))
@@ -102,6 +103,9 @@ class CIOToClProcess(IProcess):
 
         #jsonschema_vvm = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
 
+        patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
+        time_zone_D = "Europe/Berlin"
+
         jsonschema = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
 
         # new dataframe , select columns for target table , using values from json....
@@ -112,13 +116,41 @@ class CIOToClProcess(IProcess):
             F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
             F.col('messageversion'),
 
+            F.col('json_data.eventType').alias('eventType'),
+            F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventDateTime'), patern_timestamp_zulu), time_zone_D )
+                .alias('eventDateTime'),
+            F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventTime'), patern_timestamp_zulu), time_zone_D )
+                .alias('eventTime'),
+            #F.col('json_data.eventDateTime').alias('eventDateTime'),
+            #F.col('json_data.eventTime').alias('eventTime'),
+
+            F.col('json_data.eventPayload.cioBid').alias('ciobid_ps'),
+            F.lit(None).alias('psoid_ps'),
+            F.col('json_data.eventPayload.klsId').alias('klsId_ps'),
+            F.col('json_data.eventPayload.projectBid').alias('projectBid'),
+            F.col('json_data.eventPayload.homeId').alias('homeId_ps'),
+            F.lit(None).alias('lasteventType'),
+            F.lit(None).alias('creationdate'),
+            F.lit(None).alias('cancelationdate'),
+            F.lit(None).alias('completeddate'),
+            F.col('json_data.eventPayload.cioStatus').alias('cioStatus'),
+            F.col('json_data.eventPayload.carrierId').alias('carrierId'),
+            F.col('json_data.eventPayload.cancellationReason').alias('cancellationReason'),
+            F.col('json_data.eventPayload.sourceType').alias('sourceType'),
+            F.col('json_data.partyId').alias('partyID'),
+            F.col('json_data.eventPayload.externalOrderId').alias('externalOrderId_ps'),
 
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
             F.col('bdmp_area_id')
         )
 
+
+        df_al_json.show(3,False)
+
         return  df_al_json
+
+
 
     def handle_output_dfs(self, out_dfs):
         """
@@ -128,13 +160,13 @@ class CIOToClProcess(IProcess):
         spark_io = util.ISparkIO.get_obj(self.spark_app.get_spark())
 
         # Read inputs
-        df_cl_tmagic = out_dfs
+        df_out = out_dfs
         doing_Insert = False
 
 
         # if dataframe doesn't have data - skip insert to table, no new data=no insert
-        if df_cl_tmagic :
-            spark_io.df2hive(df_cl_tmagic, DB_BBE_CORE, self._out_table_name , overwrite=False)
+        if df_out :
+            spark_io.df2hive(df_out, DB_BBE_CORE, self._out_table_name , overwrite=False)
             doing_Insert = True
 
         Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
@@ -145,5 +177,5 @@ class CIOToClProcess(IProcess):
                                    format(self._out_table_name,doing_Insert),'300')
 
 
-        return df_cl_tmagic
+        return df_out
 

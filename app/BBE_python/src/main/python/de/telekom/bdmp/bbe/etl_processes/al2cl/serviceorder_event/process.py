@@ -84,10 +84,10 @@ class SOEToClProcess(IProcess):
         df_al = df_input.filter( ((df_input['messagetype'] == 'DigiOSS - ServiceOrderEvent') \
                                 | (df_input['messagetype'] == 'SOSI - ServiceOrderEvents')) \
                                 & (df_input['Messageversion'] == '1') \
-                              #  & (df_input[tracked_col] > current_tracked_value))
+                                & (df_input[tracked_col] > current_tracked_value))
 
-                                & ((df_input['acl_id'] == '210149') | (
-                                    df_input['acl_id'] == '210167')))  # 2rows for devlab debug
+                              #  & ((df_input['acl_id'] == '210149') | (
+                              #    df_input['acl_id'] == '210167')))  # 2rows for devlab debug
         #devlab filter:   acl_id in ('210149' ,  '210167', '210169')
 
         self.new_records_count = df_al.count()
@@ -113,6 +113,7 @@ class SOEToClProcess(IProcess):
         jsonschema1 = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
 
         patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
+        time_zone_D = "Europe/Berlin"
 
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
