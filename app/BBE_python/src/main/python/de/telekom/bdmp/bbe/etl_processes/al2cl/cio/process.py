@@ -81,8 +81,8 @@ class CIOToClProcess(IProcess):
         # filter "CIO" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == 'IBT - CustomerInstallationOrderEvent') \
                                        & ((df_input['Messageversion'] == '1') | (df_input['Messageversion'] == '2')) \
-                                      # & (df_input[tracked_col] > current_tracked_value))
-        & ((df_input['acl_id'] == '200876') | ( df_input['acl_id'] == '200877') | ( df_input['acl_id'] == '100053771')) )
+                                       & (df_input[tracked_col] > current_tracked_value))
+        #& ((df_input['acl_id'] == '200876') | ( df_input['acl_id'] == '200877') | ( df_input['acl_id'] == '100053771')) )
         # 3rows for devlab debug  message v1='100053771'
 
         self.new_records_count = df_al.count()

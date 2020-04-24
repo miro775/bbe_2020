@@ -301,11 +301,6 @@ class FACToClProcess(IProcess):
         # OK, no where filter
         df_serv_json = df_in_fac.select(df_in_fac['acl_id_int'],df_in_fac['json_serviceCharacteristic_array'])
 
-        # # devlab filter:        where 'acl_id_int' = '5932772'  or  200049771
-        # # devlab testing only here:
-        #df_serv_json = df_in_fac.filter((df_in_fac['acl_id_int'] == '200049771') | (df_in_fac['acl_id_int'] == '5932772')).\
-        #    select('acl_id_int', 'json_serviceCharacteristic_array')
-
         df_serv_json = df_serv_json.withColumn('explod_serviceCharacteristic',F.explode("json_serviceCharacteristic_array"))
 
         df_ServiceChar = df_serv_json.select(F.col('acl_id_int'),

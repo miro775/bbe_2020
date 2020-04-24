@@ -66,13 +66,13 @@
             <log-level>DEBUG</log-level>
             <capture-output/>
         </python>
-        <ok to="act_cio_event"/>
+        <ok to="act_cio"/>
         <error to="kill"/>
     </action>
 
 
 
-    <action name="act_cio_event">
+    <action name="act_cio">
         <python xmlns="uri:oozie:bdmp-python-action:0.1">
             <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
             <script>de/telekom/bdmp/bbe/etl_processes/al2cl/cio/main.py</script>
@@ -81,9 +81,24 @@
             <log-level>DEBUG</log-level>
             <capture-output/>
         </python>
+        <ok to="act_nvtarea"/>
+        <error to="kill"/>
+    </action>
+
+
+    <action name="act_nvtarea">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/nvtarea/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
         <ok to="end"/>
         <error to="kill"/>
     </action>
+
 
 
 

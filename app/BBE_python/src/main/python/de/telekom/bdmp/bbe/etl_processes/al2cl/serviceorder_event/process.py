@@ -55,7 +55,7 @@ class SOEToClProcess(IProcess):
 
     def logic(self, in_dfs):
         """
-        Logic of the whole process,  FAC v2
+        Logic of the whole process,
         """
 
         df_input = in_dfs
