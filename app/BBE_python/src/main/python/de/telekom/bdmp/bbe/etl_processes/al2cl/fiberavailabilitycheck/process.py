@@ -214,11 +214,11 @@ class FACToClProcess(IProcess):
         .select(df_serv_ch['acl_id_int'].alias('acl_id_05'),
                 F.to_timestamp(df_serv_ch['service_value'][0:10],'yyyy-MM-dd').alias('datumbis'))
 
-        df_AusbaustandGF.show(20,False)
-        df_Kooperationspartner.show(20,False)
-        df_Technologie.show(20,False)
-        df_DatumVon.show()
-        df_DatumBis.show()
+        #df_AusbaustandGF.show(20,False)
+        #df_Kooperationspartner.show(20,False)
+        #df_Technologie.show(20,False)
+        #df_DatumVon.show()
+        #df_DatumBis.show()
 
 
 
@@ -263,7 +263,7 @@ class FACToClProcess(IProcess):
                     df_al_json['bdmp_area_id']
                    )
 
-        df_FAC2.show(20,False)
+        #df_FAC2.show(20,False)
 
         return  df_FAC2
 
@@ -314,7 +314,7 @@ class FACToClProcess(IProcess):
                                     )
 
 
-        df_ServiceChar.show(20,False)
+        #df_ServiceChar.show(20,False)
 
         ####
         return df_ServiceChar

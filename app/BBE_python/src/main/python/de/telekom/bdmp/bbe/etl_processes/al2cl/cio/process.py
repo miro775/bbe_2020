@@ -146,7 +146,7 @@ class CIOToClProcess(IProcess):
         )
 
 
-        df_al_json.show(3,False)
+        #df_al_json.show(3,False)
 
         return  df_al_json
 

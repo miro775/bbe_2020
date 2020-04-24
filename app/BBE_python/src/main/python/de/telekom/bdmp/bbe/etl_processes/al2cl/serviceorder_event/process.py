@@ -160,7 +160,7 @@ class SOEToClProcess(IProcess):
 
         )
 
-        df_al_json.show(20, False)
+        #df_al_json.show(20, False)
 
         # explode
         df_service = self.parse_jsn_orderitem_array(df_al_json)
@@ -269,7 +269,7 @@ class SOEToClProcess(IProcess):
             (df_Service['s_name'] == 'GigaAnschluss') & (df_Service['s_state'] == 'active') & (df_Service['oi_action'] == 'add'))
 
 
-        df_Service.show(20,False)
+        #df_Service.show(20,False)
 
         ####
         return df_Service
