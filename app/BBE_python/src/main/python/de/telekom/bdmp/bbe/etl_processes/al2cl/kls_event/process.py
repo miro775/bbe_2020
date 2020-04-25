@@ -66,12 +66,11 @@ class KlsToClProcess(IProcess):
             self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
 
 
-        # 'IBT - CustomerInstallationOrderEvent'
-        # filter "CIO" only messages, only uprocessed records (alc_dop from : process-tracking-table)
+        # filter "KLS" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
                                        & ((df_input['Messageversion'] == '1') | (df_input['Messageversion'] == '2')) \
-                                      # & (df_input[tracked_col] > current_tracked_value))
-                                      & ((df_input['acl_id'] == '100053748') | ( df_input['acl_id'] == '100053799')) )
+                                       & (df_input[tracked_col] > current_tracked_value))
+                                     # & ((df_input['acl_id'] == '100053748') | ( df_input['acl_id'] == '100053799')) )
         # 2rows for devlab debug  message v1='100053748'
 
         self.new_records_count = df_al.count()
@@ -112,18 +111,25 @@ class KlsToClProcess(IProcess):
             F.col('messageversion'),
 
             F.col('json_data.eventType').alias('eventType'),
-            F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventDateTime'), patern_timestamp_zulu), time_zone_D)
-                .alias('eventDateTime_iso'),
-            F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventTime'), patern_timestamp_zulu), time_zone_D)
-                .alias('eventTime'),
+
+            F.coalesce(
+                F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventDateTime'), patern_timestamp_zulu), time_zone_D),
+                F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventTime'), patern_timestamp_zulu), time_zone_D)
+            ).alias('eventDateTime_iso'),
+
             F.lit(None).alias('eventweek'),
-            F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventPayload.modificationDate'), patern_timestamp_zulu),
-                               time_zone_D)
-                .alias('modificationDate_iso'),
+
+            F.coalesce(
+                F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventPayload.modificationDate'), patern_timestamp_zulu),
+                                   time_zone_D),
+                F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventPayload.dateInformation.date'), patern_timestamp_zulu),
+                                   time_zone_D),
+            ).alias('modificationDate_iso'),
 
             F.lit(None).alias('modificationweek'),
             F.col('json_data.eventPayload.klsId').alias('klsid_ps'),
             F.col('json_data.eventPayload.dateInformation.dateType').alias('datetype'),
+            F.col('json_data.partyId').alias('partyId'),
             F.col('json_data.eventPayload.buildUpDecision').alias('buildupdecision'),
             F.col('json_data.eventPayload.reasonComment').alias('reasoncomment'),
             F.col('json_data.eventPayload.communicationChannel').alias('communicationchannel'),
@@ -134,7 +140,7 @@ class KlsToClProcess(IProcess):
         )
 
 
-        df_al_json.show(3,False)
+        #df_al_json.show(3,False)
 
         return  df_al_json
 
@@ -145,7 +151,6 @@ class KlsToClProcess(IProcess):
         Stores result data frames to output Hive tables
         """
 
-        return None
 
         spark_io = util.ISparkIO.get_obj(self.spark_app.get_spark())
 

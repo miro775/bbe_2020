@@ -115,12 +115,14 @@ class CIOToClProcess(IProcess):
             F.col('messageversion'),
 
             F.col('json_data.eventType').alias('eventType'),
-            F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventDateTime'), patern_timestamp_zulu), time_zone_D )
-                .alias('eventDateTime'),
-            F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventTime'), patern_timestamp_zulu), time_zone_D )
+            F.coalesce(
+                F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventDateTime'), patern_timestamp_zulu), time_zone_D ),
+                F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventTime'), patern_timestamp_zulu), time_zone_D )
+            ).alias('eventDateTime'),
+
+            F.to_utc_timestamp(F.to_timestamp(F.col('json_data.eventTime'), patern_timestamp_zulu), time_zone_D)
                 .alias('eventTime'),
-            #F.col('json_data.eventDateTime').alias('eventDateTime'),
-            #F.col('json_data.eventTime').alias('eventTime'),
+
 
             F.col('json_data.eventPayload.cioBid').alias('ciobid_ps'),
             F.lit(None).alias('psoid_ps'),
