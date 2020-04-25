@@ -32,6 +32,7 @@ class CIOToClProcess(IProcess):
         self._db_out = DB_BBE_CORE
         self._out_table_name = 'cl_f_cio_mt'
 
+        self._tmagic_messagetype = 'IBT - CustomerInstallationOrderEvent'
         self.max_acl_dop_val = 0
         self.new_records_count = 0
 
@@ -67,30 +68,27 @@ class CIOToClProcess(IProcess):
         current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
             self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
 
-        # compute max value of acl_dop - needed for next transformation
-        self.max_acl_dop_val = df_input.agg(F.max(df_input[tracked_col]).alias('max')).collect()[0][0]
-
-        self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'.\
-                       format(self.name,current_tracked_value,self.max_acl_dop_val))
-
-        Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
-                                   'logic of process started','current_tracked_value={0}, max_acl_dop={1}'. \
-                                   format(current_tracked_value, self.max_acl_dop_val),'100')
 
         # 'IBT - CustomerInstallationOrderEvent'
         # filter "CIO" only messages, only uprocessed records (alc_dop from : process-tracking-table)
-        df_al = df_input.filter((df_input['messagetype'] == 'IBT - CustomerInstallationOrderEvent') \
+        df_al = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
                                        & ((df_input['Messageversion'] == '1') | (df_input['Messageversion'] == '2')) \
                                        & (df_input[tracked_col] > current_tracked_value))
         #& ((df_input['acl_id'] == '200876') | ( df_input['acl_id'] == '200877') | ( df_input['acl_id'] == '100053771')) )
         # 3rows for devlab debug  message v1='100053771'
 
         self.new_records_count = df_al.count()
-        self.log.debug('### in_df, records count= \'{0}\'  ,process {1},'.format(self.new_records_count,self.name))
+
+        # compute max value of acl_dop - needed for next transformation
+        self.max_acl_dop_val = df_al.agg(F.max(df_al[tracked_col]).alias('max')).collect()[0][0]
+
+        self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}, new_records_count={3}'.\
+                       format(self.name,current_tracked_value,self.max_acl_dop_val,self.new_records_count))
 
         Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
-                                   'logic of process','new_records_count={0}'. \
-                                   format(self.new_records_count),'110')
+                                   'logic of process started','current_tracked_value={0}, max_acl_dop={1}, new_records_count={2}'. \
+                                   format(current_tracked_value, self.max_acl_dop_val,self.new_records_count),self._tmagic_messagetype)
+
 
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
@@ -174,7 +172,7 @@ class CIOToClProcess(IProcess):
 
         Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
                                    'end of process','insert table={0} ,doing_Insert={1}'. \
-                                   format(self._out_table_name,doing_Insert),'300')
+                                   format(self._out_table_name,doing_Insert),self._tmagic_messagetype)
 
 
         return df_out
