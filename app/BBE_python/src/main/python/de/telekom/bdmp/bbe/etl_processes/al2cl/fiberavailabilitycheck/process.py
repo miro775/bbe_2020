@@ -39,6 +39,7 @@ class FACToClProcess(IProcess):
         self._db_out = DB_BBE_CORE
         self._out_table_name = 'cl_f_fiberavailabilitycheck_mt'
 
+        self._tmagic_messagetype = 'DigiOSS - FiberAvailabilityEvent V2'
         self.max_acl_dop_val = 0
         self.new_records_count = 0
 
@@ -80,17 +81,10 @@ class FACToClProcess(IProcess):
         # compute max value of acl_dop - needed for next transformation
         self.max_acl_dop_val = df_input.agg(F.max(df_input[tracked_col]).alias('max')).collect()[0][0]
 
-        self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}'.\
-                       format(self.name,current_tracked_value,self.max_acl_dop_val))
-
-        Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
-                                   'logic of process started','current_tracked_value={0}, max_acl_dop={1}'. \
-                                   format(current_tracked_value, self.max_acl_dop_val),'100')
-
 
         # filter "Fac v2" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
-        df_al = df_input.filter((df_input['messagetype'] == 'DigiOSS - FiberAvailabilityEvent V2') \
+        df_al = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
                                       & (df_input['Messageversion'] == '2') \
                                       & (df_input[tracked_col] > current_tracked_value))
 
@@ -101,11 +95,17 @@ class FACToClProcess(IProcess):
 
 
         self.new_records_count = df_al.count()
-        self.log.debug('### in_df, records count= \'{0}\'  ,process {1},'.format(self.new_records_count,self.name))
+
+        # compute max value of acl_dop - needed for next transformation
+        self.max_acl_dop_val = df_al.agg(F.max(df_al[tracked_col]).alias('max')).collect()[0][0]
+
+        self.log.debug('### logic of process \'{0}\' started, current_tracked_value={1}, max_acl_dop={2}, new_records_count={3}'.\
+                       format(self.name,current_tracked_value,self.max_acl_dop_val,self.new_records_count))
 
         Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
-                                   'logic of process','new_records_count={0}'. \
-                                   format(self.new_records_count),'110')
+                                   'logic of process started','current_tracked_value={0}, max_acl_dop={1}, new_records_count={2}'. \
+                                   format(current_tracked_value, self.max_acl_dop_val,self.new_records_count),self._tmagic_messagetype)
+
 
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
