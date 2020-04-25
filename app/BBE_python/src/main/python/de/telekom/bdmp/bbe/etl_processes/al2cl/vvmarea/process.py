@@ -159,7 +159,7 @@ class TMagicToClProcess(IProcess):
 
         Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
                                    'end of process','insert table={0} ,doing_Insert={1}'. \
-                                   format(self._out_table_name,doing_Insert),'300')
+                                   format(self._out_table_name,doing_Insert),self._tmagic_messagetype)
 
 
         return df_cl_tmagic_vvm_area
