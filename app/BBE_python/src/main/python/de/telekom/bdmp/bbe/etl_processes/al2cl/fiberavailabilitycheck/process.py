@@ -204,15 +204,23 @@ class FACToClProcess(IProcess):
         df_Technologie= df_serv_ch.filter(df_serv_ch['service_name'] =='Technologie') \
         .select(df_serv_ch['acl_id_int'].alias('acl_id_03'), df_serv_ch['service_value'].alias('technologie'))
 
-        # DatumVon,  F.to_timestamp( "column"[0:10],'yyyy-MM-dd')
+        # DatumVon, DatumBis
+        # only Datum: F.to_timestamp(df_serv_ch['service_value'][0:10],'yyyy-MM-dd').alias('datumvon')
+        # use this mask:  2020-01-01T00:00:00.000Z
+
+
         df_DatumVon = df_serv_ch.filter(df_serv_ch['service_name'] =='DatumVon') \
         .select(df_serv_ch['acl_id_int'].alias('acl_id_04'),
-                F.to_timestamp(df_serv_ch['service_value'][0:10],'yyyy-MM-dd').alias('datumvon'))
+                F.to_utc_timestamp(F.to_timestamp(df_serv_ch['service_value'],patern_timestamp_zulu),
+                                   time_zone_D).alias('datumvon')
+                )
 
         # DatumBis,  F.to_timestamp( "column"[0:10],'yyyy-MM-dd')
         df_DatumBis = df_serv_ch.filter(df_serv_ch['service_name'] =='DatumBis') \
         .select(df_serv_ch['acl_id_int'].alias('acl_id_05'),
-                F.to_timestamp(df_serv_ch['service_value'][0:10],'yyyy-MM-dd').alias('datumbis'))
+                F.to_utc_timestamp(F.to_timestamp(df_serv_ch['service_value'], patern_timestamp_zulu),
+                                   time_zone_D).alias('datumbis')
+                )
 
         #df_AusbaustandGF.show(20,False)
         #df_Kooperationspartner.show(20,False)
@@ -247,8 +255,6 @@ class FACToClProcess(IProcess):
 
                     df_AusbaustandGF['ausbaustandgf'],
 
-                    #df_al_json['planbeginngfausbau'],
-                    #df_al_json['planendegfausbau'],
                     df_DatumVon['datumvon'].alias('planbeginngfausbau'),
                     df_DatumBis['datumbis'].alias('planendegfausbau'),
 
