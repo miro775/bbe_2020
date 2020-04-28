@@ -1,12 +1,20 @@
 
+FAC_v1_klsid_ps = 'json_data.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0].id'
 FAC_v2_klsid_ps = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0].id'
 FAC_v2_eventid  = 'json_data.availabilityCheckCalledEvent.eventId'
+FAC_v1_eventid  = 'json_data.eventId'
 # temporary,  only date, truncated HH:MM:ss  because extra char "T"
 # F.to_timestamp(F.col('json_data.availabilityCheckCalledEvent.eventTime')[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
 FAC_v2_eventTime =  'json_data.availabilityCheckCalledEvent.eventTime'
+FAC_v1_requestTime =  'json_data.eventPayload.requestTime'
+
 FAC_v2_partyid = 'json_data.availabilityCheckCalledEvent.partyId'
 FAC_v2_eligibilityUnavailabilityReasonCode  = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code'
 FAC_v2_eligibilityUnavailabilityReasonLabel = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label'
+
+FAC_v1_eligibilityUnavailabilityReasonCode  = 'json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code'
+FAC_v1_eligibilityUnavailabilityReasonLabel = 'json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label'
+
 
 # address_type
 FAC_v2__place_0  = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.place[0]'
@@ -14,6 +22,7 @@ FAC_v2__place_0  = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQ
 
 # serviceCharacteristic
 #  varianta 1 : syntax for F.expr() ,  dtype will be :  array<struct.....
+FAC_v1__json_serviceCharacteristic= "json_data.eventPayload.serviceQualification.serviceQualificationItem[0].service.characteristic"
 FAC_v2__json_serviceCharacteristic_x1 = "json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
 # varianta 2: syntax for F.get_json_object()  ,  dtype will be:  string
 FAC_v2__json_serviceCharacteristic_x2 = "$.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].service.serviceCharacteristic"
