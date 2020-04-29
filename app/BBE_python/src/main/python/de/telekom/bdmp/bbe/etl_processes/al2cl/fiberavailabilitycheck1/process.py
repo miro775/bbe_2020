@@ -32,7 +32,7 @@ class FAC1ToClProcess(IProcess):
         """
         self._etl_process_name = 'proc_f_fiberavailabilitycheck_v1'
         self._db_in = DB_BBE_BASE
-        self._in_table_name = 'al_gigabit_message_mt'
+        self._in_table_name = 'al_gigabit_message_fac_mt'
 
         self._db_out = DB_BBE_CORE
         self._out_table_name = 'cl_f_fiberavailabilitycheck_mt'
@@ -64,29 +64,32 @@ class FAC1ToClProcess(IProcess):
 
     def logic(self, in_dfs):
         """
-        Logic of the whole process,  FAC v2
+        Logic of the whole process,  FAC v1
         """
 
 
         df_input = in_dfs
 
-        #self.log.debug('### logic of process \'{0}\' started,get_max_value_from_process_tracking_table...'.format(self.name))
+        #self.log.debug('### logic of process \'{0}\' started, {1}, {2}'.format(self.name,self._etl_process_name,self._in_table_name))
 
         # retrieve information from the tracking table
         current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
-            self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
+            self.spark_app.get_spark(),self._etl_process_name,self._in_table_name,col_name=True)
 
-        # compute max value of acl_dop - needed for next transformation
-        self.max_acl_dop_val = df_input.agg(F.max(df_input[tracked_col]).alias('max')).collect()[0][0]
+        # if the "process" doesn't have  record in "cl_m_process_tracking_mt" table - this is problem
+        if current_tracked_value is None:
+            self.log.debug('### process {0}  doesnt have  record in [cl_m_process_tracking_mt] table, '
+                'not found entry for: {1} , {2}'.format(self.name,self._etl_process_name,self._in_table_name))
+            raise
 
 
         # filter "Fac v1" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
         df_al = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
                                       & (df_input['Messageversion'] == '1') \
-                                     # & (df_input[tracked_col] > current_tracked_value))
+                                      & (df_input[tracked_col] > current_tracked_value))
 
-                                   & (df_input['acl_id'] == '646270'))   # for devlab debug
+                                  # & (df_input['acl_id'] == '1285945'))   # for devlab debug
 
 
 
@@ -136,18 +139,19 @@ class FAC1ToClProcess(IProcess):
 
             # to_utc_timestamp(df.eventTime_ts,  "Europe/Berlin")
             F.to_utc_timestamp(F.to_timestamp(F.col(FAC_v1_requestTime), patern_timestamp_zulu), time_zone_D)
-                .alias('requesttime_ISO'),  #fix 23.4.2020
+                .alias('requesttime_ISO'),
             # temporary,  only date, truncated HH:MM:ss  because extra char "T" , fix it
-            #F.to_timestamp(F.col( FAC_v2_eventTime )[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
+            #F.to_timestamp(F.col( FAC_v1_requestTime )[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
 
             F.lit( None ).alias('partyid'),
             F.lit(None).cast(StringType()).alias('errormessage'), #-- eventPayload.errorRepresentation.reason
 
             # this array can be NULL ??!
+            F.expr(FAC_v1_eligibilityUnavailabilityReason_array).alias('eligibilityUnavailabilityReasonCode'),
             #F.expr( FAC_v1_eligibilityUnavailabilityReasonCode ).alias('eligibilityUnavailabilityReasonCode'),
             #F.expr( FAC_v1_eligibilityUnavailabilityReasonLabel ).alias('eligibilityUnavailabilityReasonLabel'),
 
-            F.lit(None).alias('eligibilityUnavailabilityReasonCode'),
+            #F.lit(None).alias('eligibilityUnavailabilityReasonCode'),
             F.lit(None).alias('eligibilityUnavailabilityReasonLabel'),
 
             F.lit( None ).alias('address_type'),
@@ -180,7 +184,7 @@ class FAC1ToClProcess(IProcess):
 
         )
 
-        df_al_json.show(2, False)
+        #df_al_json.show(2, False)
         #df_al_json.printSchema()
 
         # this func. parse FaC serviceCharacteristic[] values
@@ -253,7 +257,7 @@ class FAC1ToClProcess(IProcess):
                     df_al_json['bdmp_area_id']
                    )
 
-        df_FAC1.show(2,False)
+        #df_FAC1.show(2,False)
 
         return  df_FAC1
 
@@ -299,7 +303,7 @@ class FAC1ToClProcess(IProcess):
                                     )
 
 
-        df_ServiceChar.show(5,False)
+        #df_ServiceChar.show(5,False)
 
         ####
         return df_ServiceChar

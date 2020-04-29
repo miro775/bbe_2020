@@ -12,6 +12,7 @@ FAC_v2_partyid = 'json_data.availabilityCheckCalledEvent.partyId'
 FAC_v2_eligibilityUnavailabilityReasonCode  = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code'
 FAC_v2_eligibilityUnavailabilityReasonLabel = 'json_data.availabilityCheckCalledEvent.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label'
 
+FAC_v1_eligibilityUnavailabilityReason_array  = 'json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0]'
 FAC_v1_eligibilityUnavailabilityReasonCode  = 'json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].code'
 FAC_v1_eligibilityUnavailabilityReasonLabel = 'json_data.eventPayload.serviceQualification.serviceQualificationItem[0].eligibilityUnavailabilityReason[0].label'
 

@@ -78,8 +78,12 @@ class FACToClProcess(IProcess):
         current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
             self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
 
-        # compute max value of acl_dop - needed for next transformation
-        self.max_acl_dop_val = df_input.agg(F.max(df_input[tracked_col]).alias('max')).collect()[0][0]
+
+        # if the "process" doesn't have  record in "cl_m_process_tracking_mt" table - this is problem
+        if current_tracked_value is None:
+            self.log.debug('### process {0}  doesnt have  record in [cl_m_process_tracking_mt] table, '
+                'not found entry for: {1} , {2}'.format(self.name,self._etl_process_name,self._in_table_name))
+            raise
 
 
         # filter "Fac v2" only messages, only uprocessed records (alc_dop from : process-tracking-table)
