@@ -159,12 +159,19 @@ class PsoToClProcess(IProcess):
             F.col('json_data.interimProductWish').alias('interimproductwish'),
             F.col('json_data.customerDetails.customerId').alias('tcomcustid'),
             # F.col('json_data.customerDetails.telekomCustomerId').alias('telekomkundennummer_ps'),
+            F.lit(None).alias('telekomkundennummer_ps'),
 
             F.col('json_data.installationLocation.buildingDetails.type').alias('buildingtype'),
 
             #F.col('json_data.installationLocation.buildingDetails.accommodationUnitAmount').alias('accommunit'),
+            F.lit(None).alias('accommunit'),
+
             #F.col('json_data.installationLocation.buildingDetails.floorAmount').alias('flooramount'),
+            F.lit(None).alias('flooramount'),
+
             #F.col('json_data.installationLocation.buildingDetails.businessUnitAmount').alias('businessunitamount'),
+            F.lit(None).alias('businessunitamount'),
+
             F.col('json_data.installationLocation.address.klsId').alias('klsid_ps'),
             F.col('json_data.installationLocation.address.klsValidated').alias('kls_validated'),
             F.col('json_data.installationLocation.address.street').alias('street'),
@@ -172,21 +179,47 @@ class PsoToClProcess(IProcess):
             F.col('json_data.installationLocation.address.zip').alias('zip_code'),
             F.col('json_data.installationLocation.address.country').alias('country'),
             F.col('json_data.provisionData.channel').alias('saleschannel'),
-            # F.col('json_data.provisionData.salesPartner.partnerCode').alias('salespartner'), # ????
+
+            # F.col('json_data.provisionData.salesPartner.partnerCode').alias('salespartner'),
+            F.lit(None).alias('salespartner'),
+
             # F.col('json_data.').alias('salescampaign'), # salesDetails.campaign
+            F.lit(None).alias('salescampaign'), # salesDetails.campaign
+
             F.col('json_data.provisionData.salesPointId').alias('salespointid'),
+
             #F.col('json_data.provisionData.salesPartner.organisationId').alias('salesorganisationid'),
+            F.lit(None).alias('salesorganisationid'),
+
             # F.col('json_data.').alias('portingallnumbers'),
+            F.lit(None).alias('portingallnumbers'),
+
             # F.col('json_data.').alias('carriername'),
+            F.lit(None).alias('carriername'),
+
             # F.col('json_data.').alias('carriercode'),
+            F.lit(None).alias('carriercode'),
+
             F.col('json_data.presalesContactAllowed').alias('presalescontactallowed'),
             F.col('json_data.businesscase').alias('businesscase'),
+
             # F.col('json_data.').alias('customerinstallationdate'),
+            F.lit(None).alias('customerinstallationdate'),
+
             F.col('json_data.customerInstallationOrderId').alias('customerinstallationorderid'),
+
             # F.col('json_data.').alias('landlordiscompany'),
+            F.lit(None).alias('landlordiscompany'),
+
             # F.col('json_data.').alias('companyname'),
+            F.lit(None).alias('companyname'),
+
             # F.col('json_data.').alias('legalform'),
+            F.lit(None).alias('legalform'),
+
             # F.col('json_data.').alias('legalentity'),
+            F.lit(None).alias('legalentity'),
+
             F.col('json_data.provisioningDetails.wishDate').alias('wishdate'),
             F.col('json_data.provisioningDetails.wishType').alias('wishtype'),
 
@@ -201,37 +234,16 @@ class PsoToClProcess(IProcess):
         df_al_json.show(2, False)
         #df_al_json.printSchema()
 
-        # this func. parse FaC serviceCharacteristic[] values
-        # explode to : service_name, service_value
-
-        #df_serv_ch = self.parse_jsn_serviceCharacteristic(df_al_json)
 
 
-
-        # avoid exception,  added aliases for join-column: 'acl_id_int'
-        # Constructing trivially true equals predicate, Perhaps you need to use aliases
-        # spark.sql.AnalysisException: Reference 'acl_id_int' is ambiguous
-
-        df_FAC2 = df_al_json.select(df_al_json['acl_id_int'],
-                    df_al_json['acl_dop_ISO'],
-                    df_al_json['messageversion'],
-
-
-                    df_al_json['bdmp_loadstamp'],
-                    df_al_json['bdmp_id'],
-                    df_al_json['bdmp_area_id']
-                   )
-
-        #df_FAC2.show(20,False)
-
-        return  df_FAC2
+        return  df_al_json
 
     def handle_output_dfs(self, out_dfs):
         """
         Stores result data frames to output Hive tables
         """
 
-        return None
+        #return None
 
         spark_io = util.ISparkIO.get_obj(self.spark_app.get_spark())
 
@@ -255,22 +267,3 @@ class PsoToClProcess(IProcess):
 
 
         return df_cl_tmagic
-
-    # this function parsing/explode  serviceCharacteristic ARRAY ,
-    def parse_jsn_serviceCharacteristic(self, df_in_fac):
-
-        # OK, no where filter
-        df_serv_json = df_in_fac.select(df_in_fac['acl_id_int'],df_in_fac['json_serviceCharacteristic_array'])
-
-        df_serv_json = df_serv_json.withColumn('explod_serviceCharacteristic',F.explode("json_serviceCharacteristic_array"))
-
-        df_ServiceChar = df_serv_json.select(F.col('acl_id_int'),
-                                    F.col('explod_serviceCharacteristic.name').alias('service_name'),
-                                    F.col('explod_serviceCharacteristic.value').alias('service_value')
-                                    )
-
-
-        #df_ServiceChar.show(20,False)
-
-        ####
-        return df_ServiceChar
