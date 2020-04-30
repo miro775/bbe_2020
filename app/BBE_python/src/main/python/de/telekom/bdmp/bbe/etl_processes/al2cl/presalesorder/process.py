@@ -131,6 +131,7 @@ class PsoToClProcess(IProcess):
         [(x, y) for x, y in json_pso_schema1.dtypes if x == 'installationLocation']
 
 
+
         newer_PSO_JSON_struct_attribute = 'installationLocation'
         for name, dtype in json_pso_schema1.dtypes:
             if name == newer_PSO_JSON_struct_attribute:
@@ -149,22 +150,45 @@ class PsoToClProcess(IProcess):
             F.col('acl_loadnumber').alias('acl_loadnumber_int'),
             F.col('messageversion'),
 
-            F.expr('json_data.id').alias('presalesorderid_ps'),
-            F.expr('json_data.state').alias('state'),
-            F.expr('json_data.customerLandlordRole').alias('customerlandlordrole'),
-            F.expr('json_data.connectionOnly').alias('connectiononly'),
-            F.expr('json_data.createdAt').alias('createdat_iso'),
-            F.expr('json_data.lastModifiedAt').alias('lastmodifiedat_iso'),
-            F.expr('json_data.interimProductWish').alias('interimproductwish'),
-            F.expr('json_data.customerDetails.customerId').alias('tcomcustid'),
-            #F.expr('json_data.customerDetails.telekomCustomerId').alias('telekomkundennummer_ps'),
-            F.lit('! json_data.customerDetails.telekomCustomerId').alias('telekomkundennummer_ps'),
+            F.col('json_data.id').alias('presalesorderid_ps'),
+            F.col('json_data.state').alias('state'),
+            F.col('json_data.customerLandlordRole').alias('customerlandlordrole'),
+            F.col('json_data.connectionOnly').alias('connectiononly'),
+            F.col('json_data.createdAt').alias('createdat_iso'),
+            F.col('json_data.lastModifiedAt').alias('lastmodifiedat_iso'),
+            F.col('json_data.interimProductWish').alias('interimproductwish'),
+            F.col('json_data.customerDetails.customerId').alias('tcomcustid'),
+            # F.col('json_data.customerDetails.telekomCustomerId').alias('telekomkundennummer_ps'),
 
-            F.expr('json_data.installationLocation.buildingDetails.type').alias('buildingtype'),
-            #F.col('json_data.location.buildingDetails.type').alias('buildingtype0'),
-            #F.get_json_object('json_data', "$.installationLocation.buildingDetails.type").alias('buildingtype_A1'),
-            #F.get_json_object('json_data', "$.location.buildingDetails.type").alias('buildingtype_A0'),
+            F.col('json_data.installationLocation.buildingDetails.type').alias('buildingtype'),
 
+            #F.col('json_data.installationLocation.buildingDetails.accommodationUnitAmount').alias('accommunit'),
+            #F.col('json_data.installationLocation.buildingDetails.floorAmount').alias('flooramount'),
+            #F.col('json_data.installationLocation.buildingDetails.businessUnitAmount').alias('businessunitamount'),
+            F.col('json_data.installationLocation.address.klsId').alias('klsid_ps'),
+            F.col('json_data.installationLocation.address.klsValidated').alias('kls_validated'),
+            F.col('json_data.installationLocation.address.street').alias('street'),
+            F.col('json_data.installationLocation.address.city').alias('city'),
+            F.col('json_data.installationLocation.address.zip').alias('zip_code'),
+            F.col('json_data.installationLocation.address.country').alias('country'),
+            F.col('json_data.provisionData.channel').alias('saleschannel'),
+            # F.col('json_data.provisionData.salesPartner.partnerCode').alias('salespartner'), # ????
+            # F.col('json_data.').alias('salescampaign'), # salesDetails.campaign
+            F.col('json_data.provisionData.salesPointId').alias('salespointid'),
+            #F.col('json_data.provisionData.salesPartner.organisationId').alias('salesorganisationid'),
+            # F.col('json_data.').alias('portingallnumbers'),
+            # F.col('json_data.').alias('carriername'),
+            # F.col('json_data.').alias('carriercode'),
+            F.col('json_data.presalesContactAllowed').alias('presalescontactallowed'),
+            F.col('json_data.businesscase').alias('businesscase'),
+            # F.col('json_data.').alias('customerinstallationdate'),
+            F.col('json_data.customerInstallationOrderId').alias('customerinstallationorderid'),
+            # F.col('json_data.').alias('landlordiscompany'),
+            # F.col('json_data.').alias('companyname'),
+            # F.col('json_data.').alias('legalform'),
+            # F.col('json_data.').alias('legalentity'),
+            F.col('json_data.provisioningDetails.wishDate').alias('wishdate'),
+            F.col('json_data.provisioningDetails.wishType').alias('wishtype'),
 
 
             F.col('bdmp_loadstamp'),
