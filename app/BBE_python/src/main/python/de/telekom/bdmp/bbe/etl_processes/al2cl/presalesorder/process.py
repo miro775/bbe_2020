@@ -35,7 +35,7 @@ class PsoToClProcess(IProcess):
         self._in_table_name = 'al_gigabit_message_mt'
 
         self._db_out = DB_BBE_CORE
-        self._out_table_name = 'cl_f_order_mt'
+        self._out_table_name = 'cl_f_presalesorder_mt'
 
         self._tmagic_messagetype = 'VVM - PreSalesOrder'
         self.max_acl_dop_val = 0
@@ -124,19 +124,46 @@ class PsoToClProcess(IProcess):
         #jsonschema_fac = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct))
         #jsonschema_fac.printSchema()  # AttributeError: 'StructType' object has no attribute 'printSchema'
 
-        # 'JSON.schema' as StructType ,  from column: jsonstruct
-        jsonschema1 = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
+        # 'json_pso_schema1.schema' as StructType ,  json_pso_schema1=DataFrame
+        json_pso_schema1 = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct))
+        #jsonschema1.printSchema()  #printschema only for debug
+
+        [(x, y) for x, y in json_pso_schema1.dtypes if x == 'installationLocation']
+
+
+        newer_PSO_JSON_struct_attribute = 'installationLocation'
+        for name, dtype in json_pso_schema1.dtypes:
+            if name == newer_PSO_JSON_struct_attribute:
+                record_has_newer_pso__json_schema = True
+                break
 
         patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
         time_zone_D="Europe/Berlin"
 
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
-        df_al_json = df_al.withColumn('json_data', F.from_json(F.col('jsonstruct'), jsonschema1)) \
+        df_al_json = df_al.withColumn('json_data', F.from_json(F.col('jsonstruct'), json_pso_schema1.schema)) \
             .select(
             F.col('acl_id').alias('acl_id_int'),
             F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
+            F.col('acl_loadnumber').alias('acl_loadnumber_int'),
             F.col('messageversion'),
+
+            F.expr('json_data.id').alias('presalesorderid_ps'),
+            F.expr('json_data.state').alias('state'),
+            F.expr('json_data.customerLandlordRole').alias('customerlandlordrole'),
+            F.expr('json_data.connectionOnly').alias('connectiononly'),
+            F.expr('json_data.createdAt').alias('createdat_iso'),
+            F.expr('json_data.lastModifiedAt').alias('lastmodifiedat_iso'),
+            F.expr('json_data.interimProductWish').alias('interimproductwish'),
+            F.expr('json_data.customerDetails.customerId').alias('tcomcustid'),
+            #F.expr('json_data.customerDetails.telekomCustomerId').alias('telekomkundennummer_ps'),
+            F.lit('! json_data.customerDetails.telekomCustomerId').alias('telekomkundennummer_ps'),
+
+            F.expr('json_data.installationLocation.buildingDetails.type').alias('buildingtype'),
+            #F.col('json_data.location.buildingDetails.type').alias('buildingtype0'),
+            #F.get_json_object('json_data', "$.installationLocation.buildingDetails.type").alias('buildingtype_A1'),
+            #F.get_json_object('json_data', "$.location.buildingDetails.type").alias('buildingtype_A0'),
 
 
 
@@ -147,7 +174,7 @@ class PsoToClProcess(IProcess):
 
         )
 
-        #df_al_json.show(2, False)
+        df_al_json.show(2, False)
         #df_al_json.printSchema()
 
         # this func. parse FaC serviceCharacteristic[] values
@@ -164,18 +191,7 @@ class PsoToClProcess(IProcess):
         df_FAC2 = df_al_json.select(df_al_json['acl_id_int'],
                     df_al_json['acl_dop_ISO'],
                     df_al_json['messageversion'],
-                    df_al_json['klsid_ps'],
-                    df_al_json['eventid'],
-                    df_al_json['requesttime_ISO'],
-                    df_al_json['partyid'],
-                    df_al_json['errormessage'],
-                    df_al_json['eligibilityUnavailabilityReasonCode'],
-                    df_al_json['eligibilityUnavailabilityReasonLabel'],
-                    df_al_json['address_type'],
 
-
-
-                    df_al_json['servicecharacteristic_array'],
 
                     df_al_json['bdmp_loadstamp'],
                     df_al_json['bdmp_id'],
@@ -190,6 +206,8 @@ class PsoToClProcess(IProcess):
         """
         Stores result data frames to output Hive tables
         """
+
+        return None
 
         spark_io = util.ISparkIO.get_obj(self.spark_app.get_spark())
 
