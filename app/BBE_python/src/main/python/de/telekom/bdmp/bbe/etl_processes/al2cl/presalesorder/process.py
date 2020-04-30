@@ -88,9 +88,9 @@ class PsoToClProcess(IProcess):
         # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
         df_al = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
                                       & (df_input['Messageversion'] == '1') \
-                                      #& (df_input[tracked_col] > current_tracked_value))
+                                      & (df_input[tracked_col] > current_tracked_value))
 
-                                   & ((df_input['acl_id'] == '5530944') | (df_input['acl_id'] == '5530907'))  )  # 2rows for devlab debug
+                                  # & ((df_input['acl_id'] == '5530944') | (df_input['acl_id'] == '5530907'))  )  # 2rows for devlab debug
 
                                       #  testing only & ((df_input['acl_id'] == '5530944') | (df_input['acl_id'] == '5530907'))
 
