@@ -83,16 +83,25 @@ class PsoToClProcess(IProcess):
                 'not found entry for: {1} , {2}'.format(self.name,self._etl_process_name,self._in_table_name))
             raise
 
+        # analyse JSON schema "read.json()" (struct) from all specific messages , filter  messagetype
+        # json_schema_full=DataFrame, json_schema_full.schema' as StructType
+        df_these_messagetype_all = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
+                                                 & (df_input['Messageversion'] == '1'))
+        json_schema_full = self.spark_app.get_spark().read.json(df_these_messagetype_all.rdd.map(lambda row: row.jsonstruct))
+        #json_schema_full.printSchema()  # debug only
 
-        # filter "Fac v2" only messages, only uprocessed records (alc_dop from : process-tracking-table)
+
+        # filter "PSO" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
         df_al = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
                                       & (df_input['Messageversion'] == '1') \
                                       & (df_input[tracked_col] > current_tracked_value))
 
-                                  # & ((df_input['acl_id'] == '5530944') | (df_input['acl_id'] == '5530907'))  )  # 2rows for devlab debug
+        #& ((df_input['acl_id'] == '5530944') | (df_input['acl_id'] == '5530907') | (df_input['acl_id'] == '200753')))  # 3rows for devlab debug
+        #& ((df_input['acl_id'] == '5530944') | (df_input['acl_id'] == '5530907')))  # 2rows for devlab debug, doesn't contains: customerDetails.telekomCustomerId
 
-                                      #  testing only & ((df_input['acl_id'] == '5530944') | (df_input['acl_id'] == '5530907'))
+        # acl_id 200753 contains :customerDetails.telekomCustomerId
+
 
 
 
@@ -117,23 +126,18 @@ class PsoToClProcess(IProcess):
             return None
 
 
-        #  get schema from json-column 'jsonstruct'
 
+        # we should read all specific messages for build JSON schema struct
+        # this "schema-subset" reading only JSON-struct from  filtered df_al  records...
+        json_pso_schema1_subset = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct))
+        #json_pso_schema1_subset.printSchema()  #printschema only for debug
 
-        # printSchema only for DEBUG on devlab!
-        #jsonschema_fac = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct))
-        #jsonschema_fac.printSchema()  # AttributeError: 'StructType' object has no attribute 'printSchema'
+        # [(x, y) for x, y in json_pso_schema1_subset.dtypes if x == 'installationLocation']
 
-        # 'json_pso_schema1.schema' as StructType ,  json_pso_schema1=DataFrame
-        json_pso_schema1 = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct))
-        #jsonschema1.printSchema()  #printschema only for debug
-
-        [(x, y) for x, y in json_pso_schema1.dtypes if x == 'installationLocation']
-
-
-
+        # the PSO messagetype  "v1"  have 2 differnet json-schemas , from Jun2019  ".installationLocation"  instead of ".location"
+        record_has_newer_pso__json_schema = False
         newer_PSO_JSON_struct_attribute = 'installationLocation'
-        for name, dtype in json_pso_schema1.dtypes:
+        for name, dtype in json_pso_schema1_subset.dtypes:
             if name == newer_PSO_JSON_struct_attribute:
                 record_has_newer_pso__json_schema = True
                 break
@@ -143,7 +147,8 @@ class PsoToClProcess(IProcess):
 
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
-        df_al_json = df_al.withColumn('json_data', F.from_json(F.col('jsonstruct'), json_pso_schema1.schema)) \
+        # REPLACEMENT "limited" json_pso_schema1_subset.schema  WITH "full" schema struct: json_schema_full.schema
+        df_al_json = df_al.withColumn('json_data', F.from_json(F.col('jsonstruct'), json_schema_full.schema)) \
             .select(
             F.col('acl_id').alias('acl_id_int'),
             F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
@@ -158,17 +163,19 @@ class PsoToClProcess(IProcess):
             F.col('json_data.lastModifiedAt').alias('lastmodifiedat_iso'),
             F.col('json_data.interimProductWish').alias('interimproductwish'),
             F.col('json_data.customerDetails.customerId').alias('tcomcustid'),
-            # F.col('json_data.customerDetails.telekomCustomerId').alias('telekomkundennummer_ps'),
-            F.lit(None).alias('telekomkundennummer_ps'),
+
+            F.col('json_data.customerDetails.telekomCustomerId').alias('telekomkundennummer_ps'),
+            #F.lit(None).alias('telekomkundennummer_ps'),
 
             F.col('json_data.installationLocation.buildingDetails.type').alias('buildingtype'),
 
-            #F.col('json_data.installationLocation.buildingDetails.accommodationUnitAmount').alias('accommunit'),
-            F.lit(None).alias('accommunit'),
+            F.col('json_data.installationLocation.buildingDetails.accommodationUnitAmount').alias('accommunit'),
+            #F.lit(None).alias('accommunit'),
 
-            #F.col('json_data.installationLocation.buildingDetails.floorAmount').alias('flooramount'),
-            F.lit(None).alias('flooramount'),
+            F.col('json_data.installationLocation.buildingDetails.floorAmount').alias('flooramount'),
+            #F.lit(None).alias('flooramount'),
 
+            # not found this:
             #F.col('json_data.installationLocation.buildingDetails.businessUnitAmount').alias('businessunitamount'),
             F.lit(None).alias('businessunitamount'),
 
@@ -180,45 +187,48 @@ class PsoToClProcess(IProcess):
             F.col('json_data.installationLocation.address.country').alias('country'),
             F.col('json_data.provisionData.channel').alias('saleschannel'),
 
-            # F.col('json_data.provisionData.salesPartner.partnerCode').alias('salespartner'),
-            F.lit(None).alias('salespartner'),
+            F.col('json_data.provisionData.salesPartner.partnerCode').alias('salespartner'),
+            #F.lit(None).alias('salespartner'),
 
-            # F.col('json_data.').alias('salescampaign'), # salesDetails.campaign
+            #not found this:
+            #F.col('json_data.salesDetails.campaign').alias('salescampaign'), # salesDetails.campaign
             F.lit(None).alias('salescampaign'), # salesDetails.campaign
 
             F.col('json_data.provisionData.salesPointId').alias('salespointid'),
 
-            #F.col('json_data.provisionData.salesPartner.organisationId').alias('salesorganisationid'),
-            F.lit(None).alias('salesorganisationid'),
+            F.col('json_data.provisionData.salesPartner.organisationId').alias('salesorganisationid'),
+            #F.lit(None).alias('salesorganisationid'),
 
-            # F.col('json_data.').alias('portingallnumbers'),
-            F.lit(None).alias('portingallnumbers'),
+            F.col('json_data.providerChange.portingAllNumbers').alias('portingallnumbers'),
+            #F.lit(None).alias('portingallnumbers'),
 
-            # F.col('json_data.').alias('carriername'),
-            F.lit(None).alias('carriername'),
+            F.col('json_data.providerChange.carrierName').alias('carriername'),
+            #F.lit(None).alias('carriername'),
 
-            # F.col('json_data.').alias('carriercode'),
-            F.lit(None).alias('carriercode'),
+            F.col('json_data.providerChange.carrierCode').alias('carriercode'),
+            #F.lit(None).alias('carriercode'),
 
             F.col('json_data.presalesContactAllowed').alias('presalescontactallowed'),
             F.col('json_data.businesscase').alias('businesscase'),
 
-            # F.col('json_data.').alias('customerinstallationdate'),
-            F.lit(None).alias('customerinstallationdate'),
+            F.col('json_data.customerInstallationDate').alias('customerinstallationdate'),
+            #F.lit(None).alias('customerinstallationdate'),
 
             F.col('json_data.customerInstallationOrderId').alias('customerinstallationorderid'),
 
-            # F.col('json_data.').alias('landlordiscompany'),
-            F.lit(None).alias('landlordiscompany'),
+            #  Boolean, CAST to True/False
+            F.when(F.col('json_data.installationLocation.landlordCompany') == None, False).otherwise(True)
+                .alias('landlordiscompany'),
+            #F.lit(None).alias('landlordiscompany'),
 
-            # F.col('json_data.').alias('companyname'),
-            F.lit(None).alias('companyname'),
+            F.col('json_data.installationLocation.landlordCompany.name').alias('companyname'),
+            #F.lit(None).alias('companyname'),
 
-            # F.col('json_data.').alias('legalform'),
-            F.lit(None).alias('legalform'),
+            F.col('json_data.installationLocation.landlordCompany.legalForm').alias('legalform'),
+            #F.lit(None).alias('legalform'),
 
-            # F.col('json_data.').alias('legalentity'),
-            F.lit(None).alias('legalentity'),
+            F.col('json_data.installationLocation.landlordCompany.legalEntity').alias('legalentity'),
+            #F.lit(None).alias('legalentity'),
 
             F.col('json_data.provisioningDetails.wishDate').alias('wishdate'),
             F.col('json_data.provisioningDetails.wishType').alias('wishtype'),
@@ -228,10 +238,9 @@ class PsoToClProcess(IProcess):
             F.col('bdmp_id'),
             F.col('bdmp_area_id')
 
-
         )
 
-        df_al_json.show(2, False)
+        #df_al_json.show(3, False)
         #df_al_json.printSchema()
 
 
@@ -243,7 +252,7 @@ class PsoToClProcess(IProcess):
         Stores result data frames to output Hive tables
         """
 
-        #return None
+        #return None   # skip INSERT,  debug only devlab
 
         spark_io = util.ISparkIO.get_obj(self.spark_app.get_spark())
 
@@ -251,8 +260,6 @@ class PsoToClProcess(IProcess):
         df_cl_tmagic = out_dfs
         doing_Insert = False
 
-        # test table  devlab: 'cl_tmagic_l0_vvmarea_mt'
-        #spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, 'cl_f_vvmarea_mt', overwrite=True)
         # if dataframe doesn't have data - skip insert to table, no new data=no insert
         if df_cl_tmagic:
             spark_io.df2hive(df_cl_tmagic, DB_BBE_CORE, self._out_table_name , overwrite=False)
