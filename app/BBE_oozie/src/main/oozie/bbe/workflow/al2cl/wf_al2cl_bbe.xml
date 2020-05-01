@@ -38,10 +38,22 @@
             <log-level>DEBUG</log-level>
             <capture-output/>
         </python>
-        <ok to="act_fac2"/>
+        <ok to="act_fac1"/>
         <error to="kill"/>
     </action>
 
+    <action name="act_fac1">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/fiberavailabilitycheck1/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_fac2"/>
+        <error to="kill"/>
+    </action>
 
     <action name="act_fac2">
         <python xmlns="uri:oozie:bdmp-python-action:0.1">
@@ -118,6 +130,19 @@
         <python xmlns="uri:oozie:bdmp-python-action:0.1">
             <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
             <script>de/telekom/bdmp/bbe/etl_processes/al2cl/fiberonlocation/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_presalesorder"/>
+        <error to="kill"/>
+    </action>
+
+    <action name="act_presalesorder">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/presalesorder/main.py</script>
             <debug-sleep-begin>0</debug-sleep-begin>
             <debug-sleep-end>0</debug-sleep-end>
             <log-level>DEBUG</log-level>
