@@ -281,6 +281,10 @@ class PsoToClProcess(IProcess):
             F.col('json_data.provisioningDetails.wishDate').alias('wishdate'),
             F.col('json_data.provisioningDetails.wishType').alias('wishtype'),
 
+            # F.expr(), dtype will be:  array < struct.....  sourcedata for cl_f_presalesorder_orderitem_mt
+            #F.expr('json_data.items').alias('orderitems_struct'),
+            F.get_json_object('jsonstruct','$.items').alias('orderitems_struct'),
+
 
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
@@ -288,7 +292,7 @@ class PsoToClProcess(IProcess):
 
         )
 
-        df_al_json.show(10, False)
+        #df_al_json.show(5, False)
         #df_al_json.printSchema()
 
 
