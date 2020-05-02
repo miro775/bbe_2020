@@ -149,6 +149,13 @@ class PsoToClProcess(IProcess):
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
         # REPLACEMENT "limited" json_pso_schema1_subset.schema  WITH "full" schema struct: json_schema_full.schema
+
+        # the PSO v1  has 2 diferent JSON-struct !!! ,   before Jun2019 and after Jun2019
+        # .location -> .installationLocation
+        # .installationAddress -> .installationLocation.address
+        #  etc
+
+
         df_al_json = df_al.withColumn('json_data', F.from_json(F.col('jsonstruct'), json_schema_full.schema)) \
             .select(
             F.col('acl_id').alias('acl_id_int'),
@@ -173,66 +180,101 @@ class PsoToClProcess(IProcess):
             F.col('json_data.customerDetails.telekomCustomerId').alias('telekomkundennummer_ps'),
             #F.lit(None).alias('telekomkundennummer_ps'),
 
-            F.col('json_data.installationLocation.buildingDetails.type').alias('buildingtype'),
+            F.coalesce(
+            F.col('json_data.location.buildingDetails.type').alias('buildingtype_0'),
+            F.col('json_data.installationLocation.buildingDetails.type').alias('buildingtype_1')
+            ).alias('buildingtype'),
 
+            #F.col('json_data.location.buildingDetails.accommodationUnitAmount').alias('accommunit_0'),
             F.col('json_data.installationLocation.buildingDetails.accommodationUnitAmount').alias('accommunit'),
-            #F.lit(None).alias('accommunit'),
 
+
+            #F.col('json_data.location.buildingDetails.floorAmount').alias('flooramount_0'),
             F.col('json_data.installationLocation.buildingDetails.floorAmount').alias('flooramount'),
-            #F.lit(None).alias('flooramount'),
+
 
             # not found this:
-            #F.col('json_data.installationLocation.buildingDetails.businessUnitAmount').alias('businessunitamount'),
+            #F.col('json_data.location.buildingDetails.businessUnitAmount').alias('businessunitamount_0'),
+            #F.col('json_data.installationLocation.buildingDetails.businessUnitAmount').alias('businessunitamount_1'),
             F.lit(None).alias('businessunitamount'),
 
-            F.col('json_data.installationLocation.address.klsId').alias('klsid_ps'),
-            F.col('json_data.installationLocation.address.klsValidated').alias('kls_validated'),
-            F.col('json_data.installationLocation.address.street').alias('street'),
-            F.col('json_data.installationLocation.address.city').alias('city'),
-            F.col('json_data.installationLocation.address.zip').alias('zip_code'),
-            F.col('json_data.installationLocation.address.country').alias('country'),
-            F.col('json_data.provisionData.channel').alias('saleschannel'),
+            F.coalesce(
+            F.col('json_data.installationAddress.klsId').alias('klsid_ps_0'),
+            F.col('json_data.installationLocation.address.klsId').alias('klsid_ps_1')
+            ).alias('klsid_ps'),
 
+            F.coalesce(
+            F.col('json_data.installationAddress.klsValidated').alias('kls_validated_0'),
+            F.col('json_data.installationLocation.address.klsValidated').alias('kls_validated_1')
+            ).alias('kls_validated'),
+
+            F.coalesce(
+            F.col('json_data.installationAddress.street').alias('street_0'),
+            F.col('json_data.installationLocation.address.street').alias('street_1')
+            ).alias('street'),
+
+
+            F.coalesce(
+            F.col('json_data.installationAddress.city').alias('city_0'),
+            F.col('json_data.installationLocation.address.city').alias('city_1')
+            ).alias('city'),
+
+            F.coalesce(
+            F.col('json_data.installationAddress.zip').alias('zip_code_0'),
+            F.col('json_data.installationLocation.address.zip').alias('zip_code_1')
+            ).alias('zip_code'),
+
+            #F.col('json_data.installationAddress.country').alias('country_0'),
+            F.col('json_data.installationLocation.address.country').alias('country'),
+
+            F.coalesce(
+            F.col('json_data.salesDetails.channel').alias('saleschannel_0'),
+            F.col('json_data.provisionData.channel').alias('saleschannel_1')
+            ).alias('saleschannel'),
+
+            #F.col('json_data.salesDetails.partner').alias('salespartner_0'),
             F.col('json_data.provisionData.salesPartner.partnerCode').alias('salespartner'),
-            #F.lit(None).alias('salespartner'),
+
 
             #not found this:
             #F.col('json_data.salesDetails.campaign').alias('salescampaign'), # salesDetails.campaign
             F.lit(None).alias('salescampaign'), # salesDetails.campaign
 
-            F.col('json_data.provisionData.salesPointId').alias('salespointid'),
+            F.coalesce(
+            F.col('json_data.salesDetails.salesPointId').alias('salespointid_0'),
+            F.col('json_data.provisionData.salesPointId').alias('salespointid_1')
+            ).alias('salespointid'),
 
-            F.col('json_data.provisionData.salesPartner.organisationId').alias('salesorganisationid'),
-            #F.lit(None).alias('salesorganisationid'),
+            F.coalesce(
+            F.col('json_data.salesDetails.organisationId').alias('salesorganisationid_0'),
+            F.col('json_data.provisionData.salesPartner.organisationId').alias('salesorganisationid_1')
+            ).alias('salesorganisationid'),
 
             F.col('json_data.providerChange.portingAllNumbers').alias('portingallnumbers'),
-            #F.lit(None).alias('portingallnumbers'),
 
             F.col('json_data.providerChange.carrierName').alias('carriername'),
-            #F.lit(None).alias('carriername'),
 
             F.col('json_data.providerChange.carrierCode').alias('carriercode'),
-            #F.lit(None).alias('carriercode'),
 
             F.col('json_data.presalesContactAllowed').alias('presalescontactallowed'),
             F.col('json_data.businesscase').alias('businesscase'),
 
             F.col('json_data.customerInstallationDate').alias('customerinstallationdate'),
-            #F.lit(None).alias('customerinstallationdate'),
 
             F.col('json_data.customerInstallationOrderId').alias('customerinstallationorderid'),
 
             #  Boolean, CAST to True/False
+            #F.when(F.col('json_data.location.landlordCompany') == None, False).otherwise(True).alias('landlordiscompany_0'),
             F.when(F.col('json_data.installationLocation.landlordCompany') == None, False).otherwise(True)
                 .alias('landlordiscompany'),
-            #F.lit(None).alias('landlordiscompany'),
 
+            #F.col('json_data.location.landlordCompany.name').alias('companyname_0'),
             F.col('json_data.installationLocation.landlordCompany.name').alias('companyname'),
-            #F.lit(None).alias('companyname'),
 
+            #F.col('json_data.location.landlordCompany.legalForm').alias('legalform_0'),
             F.col('json_data.installationLocation.landlordCompany.legalForm').alias('legalform'),
-            #F.lit(None).alias('legalform'),
 
+            #F.col('json_data.location.landlordCompany.legalEntity').alias('legalentity_0'),
             F.col('json_data.installationLocation.landlordCompany.legalEntity').alias('legalentity'),
             #F.lit(None).alias('legalentity'),
 
@@ -246,7 +288,7 @@ class PsoToClProcess(IProcess):
 
         )
 
-        #df_al_json.show(3, False)
+        df_al_json.show(10, False)
         #df_al_json.printSchema()
 
 
