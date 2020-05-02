@@ -143,6 +143,7 @@ class PsoToClProcess(IProcess):
                 break
 
         patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
+        patern_timestamp19_zulu = "yyyy-MM-dd\'T\'HH:mm:ss"
         time_zone_D="Europe/Berlin"
 
         # new dataframe , select columns for target table , using values from json....
@@ -159,8 +160,13 @@ class PsoToClProcess(IProcess):
             F.col('json_data.state').alias('state'),
             F.col('json_data.customerLandlordRole').alias('customerlandlordrole'),
             F.col('json_data.connectionOnly').alias('connectiononly'),
-            F.col('json_data.createdAt').alias('createdat_iso'),
-            F.col('json_data.lastModifiedAt').alias('lastmodifiedat_iso'),
+
+            #truncate first 19chars like:  '2019-06-24T09:46:54'
+            F.to_utc_timestamp(F.to_timestamp(F.col('json_data.createdAt')[0:19], patern_timestamp19_zulu), time_zone_D)
+                .alias('createdat_iso'),
+            F.to_utc_timestamp(F.to_timestamp(F.col('json_data.lastModifiedAt')[0:19], patern_timestamp19_zulu),
+                               time_zone_D).alias('lastmodifiedat_iso'),
+
             F.col('json_data.interimProductWish').alias('interimproductwish'),
             F.col('json_data.customerDetails.customerId').alias('tcomcustid'),
 
