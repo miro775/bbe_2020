@@ -289,6 +289,7 @@ class PsoToClProcess(IProcess):
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
             F.col('bdmp_area_id')
+            #F.expr('json_data.items').alias('bdmp_area_id')  # THIS IS DEBUG ONLY,  array-struct data
 
         )
 
