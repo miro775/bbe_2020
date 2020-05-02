@@ -9,6 +9,7 @@ import de.telekom.bdmp.bbe.common.functions as Func
 
 from pyspark.sql.types import *
 import pyspark.sql.functions as F
+from typing import List
 from pyspark.sql.dataframe import DataFrame
 
 #from pyspark.sql.functions import from_json
@@ -282,25 +283,28 @@ class PsoToClProcess(IProcess):
             F.col('json_data.provisioningDetails.wishType').alias('wishtype'),
 
             # F.expr(), dtype will be:  array < struct.....  sourcedata for cl_f_presalesorder_orderitem_mt
-            #F.expr('json_data.items').alias('orderitems_struct'),
-            F.get_json_object('jsonstruct','$.items').alias('orderitems_struct'),
+            #F.get_json_object('jsonstruct','$.items').alias('orderitems_struct'),
+            F.expr('json_data.items').alias('orderitems_struct'),
 
 
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
             F.col('bdmp_area_id')
-            #F.expr('json_data.items').alias('bdmp_area_id')  # THIS IS DEBUG ONLY,  array-struct data
+
 
         )
 
         #df_al_json.show(5, False)
         #df_al_json.printSchema()
 
+        df_pso_orderitems = self.parse_pso_orderitem_array(df_al_json)
+        df_pso_orderitems.show(1,True)
 
 
-        return  df_al_json
 
-    def handle_output_dfs(self, out_dfs):
+        return  [df_al_json, df_pso_orderitems]
+
+    def handle_output_dfs(self, out_dfs_list: List):
         """
         Stores result data frames to output Hive tables
         """
@@ -310,12 +314,14 @@ class PsoToClProcess(IProcess):
         spark_io = util.ISparkIO.get_obj(self.spark_app.get_spark())
 
         # Read inputs
-        df_cl_tmagic = out_dfs
+        df_pso = out_dfs_list[0]
+        df_pso_orderitems = out_dfs_list[1]
         doing_Insert = False
 
         # if dataframe doesn't have data - skip insert to table, no new data=no insert
-        if df_cl_tmagic:
-            spark_io.df2hive(df_cl_tmagic, DB_BBE_CORE, self._out_table_name , overwrite=False)
+        if df_pso:
+            spark_io.df2hive(df_pso, DB_BBE_CORE, self._out_table_name , overwrite=False)
+            spark_io.df2hive(df_pso_orderitems, DB_BBE_CORE, 'cl_f_presalesorder_orderitem_mt', overwrite=False)
             doing_Insert = True
 
         Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
@@ -326,4 +332,43 @@ class PsoToClProcess(IProcess):
                                    format(self._out_table_name,doing_Insert),self._tmagic_messagetype)
 
 
-        return df_cl_tmagic
+        return df_pso
+
+
+
+    # this function parsing/explode  order-items ARRAY , json_pso_orderItem
+    def parse_pso_orderitem_array(self, df_in):
+
+        # OK, no where filter
+        df_json = df_in.select(df_in['acl_id_int'],
+                               df_in['acl_dop_iso'],
+                               df_in['acl_loadnumber_int'],
+                               df_in['presalesorderid_ps'],
+                               df_in['orderitems_struct'])
+
+        #df_json = df_in.filter((df_in['acl_id_int'] == 200655) | (df_in['acl_id_int'] == 200742))\
+        #    .select(df_in['acl_id_int'], df_in['orderitems_struct'])
+
+
+        df_json = df_json.withColumn('explod_pso_orderItem',F.explode("orderitems_struct"))
+
+
+        df_out = df_json.select(
+            F.col('acl_id_int'),
+            F.col('acl_dop_iso'),
+            F.col('acl_loadnumber_int'),
+            F.col('presalesorderid_ps'),
+            F.col('explod_pso_orderItem.id').alias('orderitemid_ps'),
+            F.col('explod_pso_orderItem.lineNumber').alias('lineNumber'),
+            F.col('explod_pso_orderItem.productMaterialId').alias('productMaterialId'),
+            F.col('explod_pso_orderItem.name').alias('productnam'),
+            F.col('explod_pso_orderItem.itemType').alias('orderitemtype'),
+            F.lit(None).alias('bdmp_loadstamp'),
+            F.lit(None).alias('bdmp_id'),
+            F.lit(None).alias('bdmp_area_id')
+        )
+
+        #df_out.show(20,False)
+
+        ####
+        return df_out

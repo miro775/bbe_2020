@@ -4,18 +4,18 @@
 # CustomerInstallationOrder
 from de.telekom.bdmp.pyfw.etl_framework.sparkapp import SparkApp
 from de.telekom.bdmp.pyfw.etl_framework.tree_etl import IProcessNode, TreeEtlRunner
-from de.telekom.bdmp.bbe.etl_processes.al2cl.presalesorder_orderitem.process import PsoItemToClProcess
+from de.telekom.bdmp.bbe.etl_processes.al2cl.presalesorder_orderitem.process import PsoItem_ToClProcess
 
 
-class PSO_ProcessNode(IProcessNode):
+class PSOi_ProcessNode(IProcessNode):
     pass
 
 
 if __name__ == '__main__':
-    pso_to_cl_process = PsoItemToClProcess()
+    pso_to_cl_process = PsoItem_ToClProcess()
     spark_app = SparkApp('Spark application for {0} process'.format(pso_to_cl_process.get_name()))
     pso_to_cl_process.set_spark_app(spark_app)
-    pso_process_node = PSO_ProcessNode(pso_to_cl_process)
+    pso_process_node = PSOi_ProcessNode(pso_to_cl_process)
 
     tree_etl_runner = TreeEtlRunner([pso_process_node])
     # if tree_etl_runner.run() == 3:
