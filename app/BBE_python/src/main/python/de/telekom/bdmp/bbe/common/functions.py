@@ -17,6 +17,18 @@ import de.telekom.bdmp.pyfw.etl_framework.util as util
 from datetime import datetime
 
 
+def bbe_process_log_table(spark, etl_workflow, etl_process_name, log_type, log_entry, log_entry2='', log_entry3=''):
+
+    if log_entry and log_entry is not None:
+        spark_io = util.ISparkIO.get_obj(spark)
+        now_timestmp = datetime.now()
+
+        log_columns = ['workflow', 'process', 'log_type', 'log_time', 'log_entry', 'log_entry2', 'log_entry3']
+        log_values = [(etl_workflow, etl_process_name, log_type, now_timestmp ,log_entry, log_entry2, log_entry3)]
+
+        df_log = spark.createDataFrame(log_values, log_columns)
+        spark_io.df2hive(df_log, DB_BBE_CORE, TABLE_BBE_PROCESS_LOG, overwrite=False) # always FALSE, do not overwrite
+
 def update_process_tracking_table(spark, etl_process_name, table_name, max_tracking_value, col_name='acl_dop'):
     """
     Updates max_tracking_value in cl_m_process_tracking_mt table based on provided parameters

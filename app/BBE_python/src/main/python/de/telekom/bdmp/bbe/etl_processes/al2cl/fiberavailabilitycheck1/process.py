@@ -22,24 +22,22 @@ JOIN_LEFT_OUTER = 'left_outer'
 
 
 
-class FACToClProcess(IProcess):
-    """
-    Bestand process
-    """
+class FAC1ToClProcess(IProcess):
+
 
     def __init__(self, save_dfs_if_exc=False, persist_result_dfs=False):
         """
         Constructor initialize the process
-        db_d171_bbe_core_iws.cl_f_fiberavailabilitycheck_mt
+
         """
-        self._etl_process_name = 'proc_f_fiberavailabilitycheck_v2'
+        self._etl_process_name = 'proc_f_fiberavailabilitycheck_v1'
         self._db_in = DB_BBE_BASE
         self._in_table_name = 'al_gigabit_message_fac_mt'
 
         self._db_out = DB_BBE_CORE
         self._out_table_name = 'cl_f_fiberavailabilitycheck_mt'
 
-        self._tmagic_messagetype = 'DigiOSS - FiberAvailabilityEvent V2'
+        self._tmagic_messagetype = 'DigiOSS - FiberAvailabilityEvent'
         self.max_acl_dop_val = 0
         self.new_records_count = 0
 
@@ -66,18 +64,17 @@ class FACToClProcess(IProcess):
 
     def logic(self, in_dfs):
         """
-        Logic of the whole process,  FAC v2
+        Logic of the whole process,  FAC v1
         """
 
 
         df_input = in_dfs
 
-        #self.log.debug('### logic of process \'{0}\' started,get_max_value_from_process_tracking_table...'.format(self.name))
+        #self.log.debug('### logic of process \'{0}\' started, {1}, {2}'.format(self.name,self._etl_process_name,self._in_table_name))
 
         # retrieve information from the tracking table
         current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
-            self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
-
+            self.spark_app.get_spark(),self._etl_process_name,self._in_table_name,col_name=True)
 
         # if the "process" doesn't have  record in "cl_m_process_tracking_mt" table - this is problem
         if current_tracked_value is None:
@@ -86,23 +83,20 @@ class FACToClProcess(IProcess):
             raise
 
 
-
         # analyse JSON schema "read.json()" (struct) from all specific messages , filter  messagetype
         # json_schema_full=DataFrame, json_schema_full.schema' as StructType
         df_these_messagetype_all = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
-                                & (df_input['Messageversion'] == '2') )
+                                & (df_input['Messageversion'] == '1') )
         json_schema_full = self.spark_app.get_spark().read.json(df_these_messagetype_all.rdd.map(lambda row: row.jsonstruct))
 
 
-        # filter "Fac v2" only messages, only uprocessed records (alc_dop from : process-tracking-table)
+        # filter "Fac v1" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         # for full-process AL2CL, disable filter:  & (df_input[tracked_col] > current_tracked_value)
         df_al = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
-                                      & (df_input['Messageversion'] == '2') \
+                                      & (df_input['Messageversion'] == '1') \
                                       & (df_input[tracked_col] > current_tracked_value))
 
-                                   #& ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))  )  # 2rows for devlab debug
-
-                                      #  testing only & ((df_input['acl_id'] == '200049771') | (df_input['acl_id'] == '5932772'))
+                                  # & (df_input['acl_id'] == '1285945'))   # for devlab debug
 
 
 
@@ -147,36 +141,35 @@ class FACToClProcess(IProcess):
             F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
             F.col('messageversion'),
 
-            F.expr( FAC_v2_klsid_ps ).alias('klsid_ps'),
-            F.col( FAC_v2_eventid ).alias('eventid'),
+            F.expr( FAC_v1_klsid_ps ).alias('klsid_ps'),
+            F.col( FAC_v1_eventid ).alias('eventid'),
 
             # to_utc_timestamp(df.eventTime_ts,  "Europe/Berlin")
-            F.to_utc_timestamp(F.to_timestamp(F.col(FAC_v2_eventTime), patern_timestamp_zulu), time_zone_D)
-                .alias('requesttime_ISO'),  #fix 23.4.2020
+            F.to_utc_timestamp(F.to_timestamp(F.col(FAC_v1_requestTime), patern_timestamp_zulu), time_zone_D)
+                .alias('requesttime_ISO'),
             # temporary,  only date, truncated HH:MM:ss  because extra char "T" , fix it
-            #F.to_timestamp(F.col( FAC_v2_eventTime )[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
+            #F.to_timestamp(F.col( FAC_v1_requestTime )[0:10],'yyyy-MM-dd').alias('requesttime_ISO'),
 
-            F.col( FAC_v2_partyid ).alias('partyid'),
-            F.lit(None).cast(StringType()).alias('errormessage'),
+            F.lit( None ).alias('partyid'),
+            F.lit(None).cast(StringType()).alias('errormessage'), #-- eventPayload.errorRepresentation.reason
 
-            F.expr( FAC_v2_eligibilityUnavailabilityReasonCode ).alias('eligibilityUnavailabilityReasonCode'),
-            F.expr( FAC_v2_eligibilityUnavailabilityReasonLabel ).alias('eligibilityUnavailabilityReasonLabel'),
+            # this array can be NULL ??!
+            F.expr(FAC_v1_eligibilityUnavailabilityReason_array).alias('eligibilityUnavailabilityReasonCode'),
+            #F.expr( FAC_v1_eligibilityUnavailabilityReasonCode ).alias('eligibilityUnavailabilityReasonCode'),
+            #F.expr( FAC_v1_eligibilityUnavailabilityReasonLabel ).alias('eligibilityUnavailabilityReasonLabel'),
 
-            # additional PARSING needed:
-            F.expr( FAC_v2__place_0 ).alias('address_type'),
+            #F.lit(None).alias('eligibilityUnavailabilityReasonCode'),
+            F.lit(None).alias('eligibilityUnavailabilityReasonLabel'),
 
-            # not working: F.get_json_object('jsonstruct',FAC_v2__place_type).alias('address_type'),
+            F.lit( None ).alias('address_type'),
 
-            # reading only first record [0]  directly...
-            #F.expr(FAC_v2__serviceCharacteristic0_name).alias('serviceCharacteristic0_name'),
-            #F.expr(FAC_v2__serviceCharacteristic0_value).alias('serviceCharacteristic0_value'),
 
             # read all json-struct <array> from serviceCharacteristic[]
             # !!!
             # varianta 2: syntax for F.get_json_object()  ,  dtype will be:  string
             # F.get_json_object('jsonstruct', FAC_v2__json_serviceCharacteristic_x2).alias('json_serviceCharacteristic'),
             # varianta 1 : syntax for F.expr() ,  dtype will be :  array<struct.....
-            F.expr( FAC_v2__json_serviceCharacteristic_x1).alias('json_serviceCharacteristic_array'),
+            F.expr( FAC_v1__json_serviceCharacteristic).alias('json_serviceCharacteristic_array'),
 
 
 
@@ -210,33 +203,26 @@ class FACToClProcess(IProcess):
         df_AusbaustandGF = df_serv_ch.filter(df_serv_ch['service_name'] =='Ausbaustand Glasfaser') \
         .select(df_serv_ch['acl_id_int'].alias('acl_id_01'), df_serv_ch['service_value'].alias('ausbaustandgf'))
 
-        df_Kooperationspartner = df_serv_ch.filter(df_serv_ch['service_name'] =='Kooperationspartner') \
-        .select(df_serv_ch['acl_id_int'].alias('acl_id_02'), df_serv_ch['service_value'].alias('kooperationspartner'))
-
-        df_Technologie= df_serv_ch.filter(df_serv_ch['service_name'] =='Technologie') \
-        .select(df_serv_ch['acl_id_int'].alias('acl_id_03'), df_serv_ch['service_value'].alias('technologie'))
 
         # DatumVon, DatumBis
         # only Datum: F.to_timestamp(df_serv_ch['service_value'][0:10],'yyyy-MM-dd').alias('datumvon')
         # use this mask:  2020-01-01T00:00:00.000Z
 
-
-        df_DatumVon = df_serv_ch.filter(df_serv_ch['service_name'] =='DatumVon') \
+        # DatumVon:  Geplanter Beginn Glasfaser-Ausbau
+        df_DatumVon = df_serv_ch.filter(df_serv_ch['service_name'] =='Geplanter Beginn Glasfaser-Ausbau') \
         .select(df_serv_ch['acl_id_int'].alias('acl_id_04'),
                 F.to_utc_timestamp(F.to_timestamp(df_serv_ch['service_value'],patern_timestamp_zulu),
                                    time_zone_D).alias('datumvon')
                 )
 
-        # DatumBis,  F.to_timestamp( "column"[0:10],'yyyy-MM-dd')
-        df_DatumBis = df_serv_ch.filter(df_serv_ch['service_name'] =='DatumBis') \
+        # DatumBis,  Geplantes Ende Glasfaser-Ausbau
+        df_DatumBis = df_serv_ch.filter(df_serv_ch['service_name'] =='Geplantes Ende Glasfaser-Ausbau') \
         .select(df_serv_ch['acl_id_int'].alias('acl_id_05'),
                 F.to_utc_timestamp(F.to_timestamp(df_serv_ch['service_value'], patern_timestamp_zulu),
                                    time_zone_D).alias('datumbis')
                 )
 
         #df_AusbaustandGF.show(20,False)
-        #df_Kooperationspartner.show(20,False)
-        #df_Technologie.show(20,False)
         #df_DatumVon.show()
         #df_DatumBis.show()
 
@@ -246,11 +232,8 @@ class FACToClProcess(IProcess):
         # Constructing trivially true equals predicate, Perhaps you need to use aliases
         # spark.sql.AnalysisException: Reference 'acl_id_int' is ambiguous
 
-        df_FAC2 = df_al_json \
+        df_FAC1 = df_al_json \
             .join(df_AusbaustandGF, df_al_json['acl_id_int'] == df_AusbaustandGF['acl_id_01'], JOIN_LEFT_OUTER) \
-            .join(df_Kooperationspartner, df_al_json['acl_id_int'] == df_Kooperationspartner['acl_id_02'],
-                  JOIN_LEFT_OUTER) \
-            .join(df_Technologie, df_al_json['acl_id_int'] == df_Technologie['acl_id_03'], JOIN_LEFT_OUTER) \
             .join(df_DatumVon, df_al_json['acl_id_int'] == df_DatumVon['acl_id_04'], JOIN_LEFT_OUTER) \
             .join(df_DatumBis, df_al_json['acl_id_int'] == df_DatumBis['acl_id_05'], JOIN_LEFT_OUTER) \
             .select(df_al_json['acl_id_int'],
@@ -270,9 +253,9 @@ class FACToClProcess(IProcess):
                     df_DatumVon['datumvon'].alias('planbeginngfausbau'),
                     df_DatumBis['datumbis'].alias('planendegfausbau'),
 
-                    df_Kooperationspartner['kooperationspartner'],
+                    df_al_json['kooperationspartner'],
 
-                    df_Technologie['technologie'],
+                    df_al_json['technologie'],
 
                     df_al_json['servicecharacteristic_array'],
 
@@ -281,9 +264,9 @@ class FACToClProcess(IProcess):
                     df_al_json['bdmp_area_id']
                    )
 
-        #df_FAC2.show(20,False)
+        #df_FAC1.show(2,False)
 
-        return  df_FAC2
+        return  df_FAC1
 
     def handle_output_dfs(self, out_dfs):
         """
@@ -327,7 +310,7 @@ class FACToClProcess(IProcess):
                                     )
 
 
-        #df_ServiceChar.show(20,False)
+        #df_ServiceChar.show(5,False)
 
         ####
         return df_ServiceChar

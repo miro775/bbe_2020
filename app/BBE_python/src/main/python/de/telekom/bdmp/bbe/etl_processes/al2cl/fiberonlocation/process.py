@@ -14,23 +14,22 @@ import pyspark.sql.functions as F
 #from pyspark.sql.functions import lit
 from datetime import datetime
 
-
-
-class TMagicToClProcess(IProcess):
+# FolToClProcess
+class FolToClProcess(IProcess):
 
 
     def __init__(self, save_dfs_if_exc=False, persist_result_dfs=False):
         """
         Constructor initialize the process
         """
-        self._etl_process_name = 'proc_f_vvmarea'
+        self._etl_process_name = 'proc_f_fiberonlocation'
         self._db_in = DB_BBE_BASE
         self._in_table_name = 'al_gigabit_message_mt'
 
         self._db_out = DB_BBE_CORE
-        self._out_table_name = 'cl_f_vvmarea_mt'
+        self._out_table_name = 'cl_f_fiberonlocation_mt'
 
-        self._tmagic_messagetype = 'DigiOSS - vvmArea'
+        self._tmagic_messagetype = 'DigiOSS - FibreOnLocation'
         self.max_acl_dop_val = 0
         self.new_records_count = 0
 
@@ -48,14 +47,12 @@ class TMagicToClProcess(IProcess):
         # Df creator class
         df_creator = DfCreator(self.spark_app.get_spark())
 
-        # DWHM
-        #df_input_vvmarea = df_creator.get_df(database=DB_BBE_BASE, table='al_gigabit_message_mt')
-        df_input_vvmarea = df_creator.get_df(self._db_in,  self._in_table_name)
+        df_input = df_creator.get_df(self._db_in,  self._in_table_name)
 
         self.log.debug('### Preparation of input data frames of process \'{0}\' started'.format(self.name))
 
 
-        return df_input_vvmarea
+        return df_input
 
     def logic(self, in_dfs):
         """
@@ -68,17 +65,20 @@ class TMagicToClProcess(IProcess):
         current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
             self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
 
-
         # analyse JSON schema "read.json()" (struct) from all specific messages , filter  messagetype
         # json_schema_full=DataFrame, json_schema_full.schema' as StructType
         df_these_messagetype_all = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
-                                & (df_input['Messageversion'] == '1') )
+                                & ((df_input['Messageversion'] == '1') | (df_input['Messageversion'] == '2')))
         json_schema_full = self.spark_app.get_spark().read.json(df_these_messagetype_all.rdd.map(lambda row: row.jsonstruct))
 
-        # filter "vvm" only messages, only uprocessed records (alc_dop from : process-tracking-table)
+
+
+        # filter "foL" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
-                                      & (df_input['Messageversion'] == '1') \
-                                      & (df_input[tracked_col] > current_tracked_value))
+                                       & ((df_input['Messageversion'] == '1') | (df_input['Messageversion'] == '2')) \
+                                       & (df_input[tracked_col] > current_tracked_value))
+                                     # & ((df_input['acl_id'] == '194427') | ( df_input['acl_id'] == '100053605')) )
+        # 2rows for devlab debug  message v1='100053748'
 
         self.new_records_count = df_al.count()
 
@@ -93,7 +93,6 @@ class TMagicToClProcess(IProcess):
                                    format(current_tracked_value, self.max_acl_dop_val,self.new_records_count),self._tmagic_messagetype)
 
 
-
         # IF DataFrame is empty , do not parse Json , no new data
         # "df_al.rdd.isEmpty()" ? - this can be performance problem ?!
         if self.new_records_count==0:
@@ -101,9 +100,14 @@ class TMagicToClProcess(IProcess):
             return None
 
 
+        #  get schema from json-column 'jsonstruct'
 
+        #jsonschema_vvm = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
 
-        #jsonschema_vvm = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
+        patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
+        time_zone_D = "Europe/Berlin"
+
+        #jsonschema = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
 
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
@@ -112,49 +116,60 @@ class TMagicToClProcess(IProcess):
             F.col('acl_id').alias('acl_id_int'),
             F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
             F.col('messageversion'),
-            F.col('json_data.number').alias('number'),
-            F.col('json_data.name').alias('name'),
-            F.lit(None).cast(BooleanType()).alias('is_reporting_relevant'),
-            F.from_unixtime(F.col('json_data.creationDate')[0:10]).alias('creationDate_ISO'),
-            F.from_unixtime(F.col('json_data.modificationDate')[0:10]).alias('modificationDate_ISO'),
-            F.col('json_data.areaType'),
-            F.from_unixtime(F.col('json_data.rolloutDate')[0:10]).alias('rolloutDate'),
-            F.col('json_data.areaStatus'),
-            F.col('json_data.plannedArea'),
-            F.from_unixtime(F.col('json_data.plannedFrom')[0:10]).alias('plannedFrom_ISO'),
-            F.from_unixtime(F.col('json_data.plannedTo')[0:10]).alias('plannedTo_ISO'),
 
-            # parse json, for 3new columns, 25.3.2020
-            #F.lit(None).alias('threshold'),
-            #F.lit(None).alias('orderscountinvvm'),
-            #F.lit(None).alias('additionalorderscountinvvm'),
-            F.col('json_data.thresholdData.threshold').alias('threshold'),
-            F.col('json_data.thresholdData.ordersCountInVVM').alias('orderscountinvvm'),
-            F.col('json_data.thresholdData.additionalOrdersCountInVVM').alias('additionalorderscountinvvm'),
+            F.col('json_data.klsId').alias('klsid_ps'),
+            F.col('json_data.vvmArea.number').alias('vvmareanumber'),
+            F.col('json_data.nvtArea.businessId').alias('nvtareabusinessid'),
+
+            F.from_unixtime(F.col('json_data.modificationDate')[0:10]).alias('modificationDate_ISO'),
+            F.from_unixtime(F.col('json_data.creationDate')[0:10]).alias('creationDate_ISO'),
+
+            F.col('json_data.controltraceabilitymanual').alias('controltraceabilitymanual'),
+
+            F.col('json_data.installationStatus').alias('installationStatus'),
+            F.col('json_data.demandCarrier').alias('demandCarrier'),
+            F.col('json_data.areaType').alias('areaType'),
+            F.col('json_data.initiative').alias('initiative'),
+            F.col('json_data.reasonForNoConstruction').alias('reasonForNoConstruction'),
+            F.col('json_data.technology').alias('technology'),
+            F.col('json_data.rolloutSponsor').alias('rolloutSponsor'),
+            F.from_unixtime(F.col('json_data.installationDate')[0:10]).alias('installationDate_ISO'),
+            F.from_unixtime(F.col('json_data.plannedInstallationBegin')[0:10]).alias('plannedInstallationBegin_ISO'),
+            F.from_unixtime(F.col('json_data.plannedInstallationEnd')[0:10]).alias('plannedInstallationEnd_ISO'),
+            F.col('json_data.we'),
+            F.col('json_data.ge'),
+            F.col('json_data.sl'),
+
 
             F.col('bdmp_loadstamp'),
             F.col('bdmp_id'),
             F.col('bdmp_area_id')
         )
 
+
+        #df_al_json.show(3,False)
+
         return  df_al_json
+
+
 
     def handle_output_dfs(self, out_dfs):
         """
         Stores result data frames to output Hive tables
         """
 
+        #return None
+
         spark_io = util.ISparkIO.get_obj(self.spark_app.get_spark())
 
         # Read inputs
-        df_cl_tmagic_vvm_area = out_dfs
+        df_out = out_dfs
         doing_Insert = False
 
-        # test table  devlab: 'cl_tmagic_l0_vvmarea_mt'
-        #spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, 'cl_f_vvmarea_mt', overwrite=True)
+
         # if dataframe doesn't have data - skip insert to table, no new data=no insert
-        if df_cl_tmagic_vvm_area :
-            spark_io.df2hive(df_cl_tmagic_vvm_area, DB_BBE_CORE, self._out_table_name , overwrite=False)
+        if df_out :
+            spark_io.df2hive(df_out, DB_BBE_CORE, self._out_table_name , overwrite=False)
             doing_Insert = True
 
         Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
@@ -165,5 +180,5 @@ class TMagicToClProcess(IProcess):
                                    format(self._out_table_name,doing_Insert),self._tmagic_messagetype)
 
 
-        return df_cl_tmagic_vvm_area
+        return df_out
 

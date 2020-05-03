@@ -38,10 +38,22 @@
             <log-level>DEBUG</log-level>
             <capture-output/>
         </python>
-        <ok to="act_fac2"/>
+        <ok to="act_fac1"/>
         <error to="kill"/>
     </action>
 
+    <action name="act_fac1">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/fiberavailabilitycheck1/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_fac2"/>
+        <error to="kill"/>
+    </action>
 
     <action name="act_fac2">
         <python xmlns="uri:oozie:bdmp-python-action:0.1">
@@ -52,25 +64,107 @@
             <log-level>DEBUG</log-level>
             <capture-output/>
         </python>
+        <ok to="act_serviceorder_event"/>
+        <error to="kill"/>
+    </action>
+
+
+    <action name="act_serviceorder_event">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/serviceorder_event/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_cio"/>
+        <error to="kill"/>
+    </action>
+
+
+
+    <action name="act_cio">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/cio/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_nvtarea"/>
+        <error to="kill"/>
+    </action>
+
+
+    <action name="act_nvtarea">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/nvtarea/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_klsEvent"/>
+        <error to="kill"/>
+    </action>
+
+
+    <action name="act_klsEvent">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/kls_event/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_FoL"/>
+        <error to="kill"/>
+    </action>
+
+
+    <action name="act_FoL">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/fiberonlocation/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_workorderevent"/>
+        <error to="kill"/>
+    </action>
+
+    <action name="act_workorderevent">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/workorder_event/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_presalesorder"/>
+        <error to="kill"/>
+    </action>
+
+    <action name="act_presalesorder">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/presalesorder/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
         <ok to="end"/>
         <error to="kill"/>
     </action>
 
-    <action name="subwf_vvmarea">
-        <sub-workflow>
-            <app-path>${workflowBase}/entities/wf_vvmarea.xml</app-path>
-        </sub-workflow>
-        <ok to="subwf_fac2"/>
-        <error to="end"/>
-    </action>
-
-    <action name="subwf_fac2">
-        <sub-workflow>
-            <app-path>${workflowBase}/entities/wf_fac2.xml</app-path>
-        </sub-workflow>
-        <ok to="end"/>
-        <error to="end"/>
-    </action>
 
 
     <kill name="kill">

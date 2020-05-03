@@ -13,3 +13,13 @@ DB_BBE_CORE = 'db{0}_bbe_core_iws'.format(my_bdmp_env)
 DB_BBE_BASE = 'db{0}_bbe_base_iws'.format(my_bdmp_env)
 
 TABLE_BBE_PROCESS_TRACKING = 'cl_m_process_tracking_mt'
+TABLE_BBE_PROCESS_LOG = 'cl_m_process_log_mt'
+
+JOIN_LEFT_OUTER = 'left_outer'
+
+WF_AL2CL = 'al2cl'  #  workflow name, for  log table
+
+patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
+patern_timestamp19_zulu = "yyyy-MM-dd\'T\'HH:mm:ss"
+time_zone_D = "Europe/Berlin"
+
