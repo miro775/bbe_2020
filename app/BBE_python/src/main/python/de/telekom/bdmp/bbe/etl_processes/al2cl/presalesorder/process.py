@@ -130,21 +130,6 @@ class PsoToClProcess(IProcess):
 
 
 
-        # we should read all specific messages for build JSON schema struct
-        # this "schema-subset" reading only JSON-struct from  filtered df_al  records...
-        json_pso_schema1_subset = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct))
-        #json_pso_schema1_subset.printSchema()  #printschema only for debug
-
-        # [(x, y) for x, y in json_pso_schema1_subset.dtypes if x == 'installationLocation']
-
-        # the PSO messagetype  "v1"  have 2 differnet json-schemas , from Jun2019  ".installationLocation"  instead of ".location"
-        record_has_newer_pso__json_schema = False
-        newer_PSO_JSON_struct_attribute = 'installationLocation'
-        for name, dtype in json_pso_schema1_subset.dtypes:
-            if name == newer_PSO_JSON_struct_attribute:
-                record_has_newer_pso__json_schema = True
-                break
-
         #patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
         #patern_timestamp19_zulu = "yyyy-MM-dd\'T\'HH:mm:ss"
         #time_zone_D="Europe/Berlin"
@@ -316,7 +301,7 @@ class PsoToClProcess(IProcess):
         Stores result data frames to output Hive tables
         """
 
-        #return None   # skip INSERT,  debug only devlab
+        #return None   # skip INSERT,  debug only, devlab
 
         spark_io = util.ISparkIO.get_obj(self.spark_app.get_spark())
 
@@ -377,7 +362,7 @@ class PsoToClProcess(IProcess):
             F.lit(None).alias('bdmp_area_id')
         )
 
-        df_out.show(20,False)
+        #df_out.show(20,False)
 
         ####
         return df_out
@@ -401,7 +386,6 @@ class PsoToClProcess(IProcess):
 
         df_json = df_json.withColumn('explod_pso_hist',F.explode("history_array"))
 
-        #  add FILTER:  '$.itemType' = 'state_transition'
 
         df_out = df_json.select(
             F.col('acl_id_int'),
@@ -410,7 +394,7 @@ class PsoToClProcess(IProcess):
             F.col('presalesorderid_ps'),
             F.col('explod_pso_hist.id').alias('historyid_ps'),
             F.col('explod_pso_hist.itemType').alias('itemtype'),
-            #F.col('explod_pso_hist.createdAt').alias('historyTimestamp_ISO'),
+
             F.to_utc_timestamp(
                 F.to_timestamp(
                 F.col('explod_pso_hist.createdAt')[0:19], patern_timestamp19_zulu), time_zone_D)
@@ -428,7 +412,11 @@ class PsoToClProcess(IProcess):
             F.lit(None).alias('bdmp_area_id')
         )
 
-        df_out.show(20,False)
+        #df_out.show(20,False)
+
+        #  add FILTER:  'itemType' = 'state_transition'
+        df_out = df_out.filter( df_out['itemtype'] == 'state_transition' )
+        #df_out.show(10,False)
 
         ####
         return df_out

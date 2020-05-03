@@ -2,7 +2,8 @@
 import de.telekom.bdmp.pyfw.etl_framework.util as util
 from de.telekom.bdmp.pyfw.etl_framework.iprocess import IProcess
 from de.telekom.bdmp.pyfw.etl_framework.dfcreator import DfCreator
-from de.telekom.bdmp.bbe.common.bdmp_constants import WF_AL2CL, DB_BBE_BASE, DB_BBE_CORE
+from de.telekom.bdmp.bbe.common.bdmp_constants import WF_AL2CL, DB_BBE_BASE, DB_BBE_CORE, patern_timestamp_zulu,\
+    patern_timestamp19_zulu, time_zone_D
 import de.telekom.bdmp.bbe.common.functions as Func
 
 from pyspark.sql.types import *
@@ -15,11 +16,9 @@ import pyspark.sql.functions as F
 from datetime import datetime
 
 
-# CIOToClProcess
+# CIOToClProcess -   IL2CL_CustomerInstallationOrder.sql
 class CIOToClProcess(IProcess):
-    """
-    Bestand process
-    """
+
 
     def __init__(self, save_dfs_if_exc=False, persist_result_dfs=False):
         """
@@ -68,12 +67,25 @@ class CIOToClProcess(IProcess):
         current_tracked_value, tracked_col = Func.get_max_value_from_process_tracking_table(
             self.spark_app.get_spark(), self._etl_process_name, self._in_table_name, col_name=True)
 
+        # if the "process" doesn't have  record in "cl_m_process_tracking_mt" table - this is problem
+        if current_tracked_value is None:
+            self.log.debug('### process {0}  doesnt have  record in [cl_m_process_tracking_mt] table, '
+                'not found entry for: {1} , {2}'.format(self.name,self._etl_process_name,self._in_table_name))
+            raise
+
+        # analyse JSON schema "read.json()" (struct) from all specific messages , filter  messagetype
+        # json_schema_full=DataFrame, json_schema_full.schema' as StructType
+        df_these_messagetype_all = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
+                                & ((df_input['Messageversion'] == '1') | (df_input['Messageversion'] == '2')))
+        json_schema_full = self.spark_app.get_spark().read.json(df_these_messagetype_all.rdd.map(lambda row: row.jsonstruct))
+
 
         # 'IBT - CustomerInstallationOrderEvent'
         # filter "CIO" only messages, only uprocessed records (alc_dop from : process-tracking-table)
         df_al = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
                                        & ((df_input['Messageversion'] == '1') | (df_input['Messageversion'] == '2')) \
                                        & (df_input[tracked_col] > current_tracked_value))
+
         #& ((df_input['acl_id'] == '200876') | ( df_input['acl_id'] == '200877') | ( df_input['acl_id'] == '100053771')) )
         # 3rows for devlab debug  message v1='100053771'
 
@@ -97,18 +109,10 @@ class CIOToClProcess(IProcess):
             return None
 
 
-        #  get schema from json-column 'jsonstruct'
-
-        #jsonschema_vvm = spark.read.json(df3.rdd.map(lambda row: row.jsonstruct)).schema
-
-        patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
-        time_zone_D = "Europe/Berlin"
-
-        jsonschema = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct)).schema
 
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
-        df_al_json = df_al.withColumn('json_data', F.from_json(F.col('jsonstruct'), jsonschema)) \
+        df_al_json = df_al.withColumn('json_data', F.from_json(F.col('jsonstruct'), json_schema_full.schema)) \
             .select(
             F.col('acl_id').alias('acl_id_int'),
             F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),

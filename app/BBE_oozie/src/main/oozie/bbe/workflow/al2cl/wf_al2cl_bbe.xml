@@ -135,6 +135,19 @@
             <log-level>DEBUG</log-level>
             <capture-output/>
         </python>
+        <ok to="act_workorderevent"/>
+        <error to="kill"/>
+    </action>
+
+    <action name="act_workorderevent">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/workorder_event/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
         <ok to="act_presalesorder"/>
         <error to="kill"/>
     </action>
