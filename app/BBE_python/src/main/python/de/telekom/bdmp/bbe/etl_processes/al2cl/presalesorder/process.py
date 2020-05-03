@@ -293,6 +293,10 @@ class PsoToClProcess(IProcess):
         # parse array 'history_array' - json-explode do new dataframe
         df_pso_history = self.parse_pso_history_array(df_al_json)
 
+        Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
+                                   'logic() finished','next step insert, table={0} '. \
+                                   format(self._out_table_name),self._tmagic_messagetype)
+
 
         return  [df_al_json, df_pso_orderitems, df_pso_history]
 
@@ -314,16 +318,26 @@ class PsoToClProcess(IProcess):
         # if dataframe doesn't have data - skip insert to table, no new data=no insert
         if df_pso:
             spark_io.df2hive(df_pso, DB_BBE_CORE, self._out_table_name , overwrite=False)
-            spark_io.df2hive(df_pso_orderitems, DB_BBE_CORE, self._out_table_name_pso_orderitem, overwrite=False)
-            spark_io.df2hive(df_pso_history, DB_BBE_CORE, self._out_table_name_pso_history, overwrite=False)
             doing_Insert = True
-
-        Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
+            Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
                                            self._in_table_name, self.max_acl_dop_val)
 
         Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
                                    'end of process','insert table={0} ,doing_Insert={1}'. \
                                    format(self._out_table_name,doing_Insert),self._tmagic_messagetype)
+
+        if df_pso_orderitems:
+            spark_io.df2hive(df_pso_orderitems, DB_BBE_CORE, self._out_table_name_pso_orderitem, overwrite=False)
+            Func.bbe_process_log_table(self.spark_app.get_spark(), WF_AL2CL, self._etl_process_name, 'INFO',
+                                       'end of process-insert 2.', 'insert table={0} , '. \
+                                       format(self._out_table_name_pso_orderitem), self._tmagic_messagetype)
+
+
+        if df_pso_history:
+            spark_io.df2hive(df_pso_history, DB_BBE_CORE, self._out_table_name_pso_history, overwrite=False)
+            Func.bbe_process_log_table(self.spark_app.get_spark(), WF_AL2CL, self._etl_process_name, 'INFO',
+                                       'end of process-insert 3.', 'insert table={0} , '. \
+                                       format(self._out_table_name_pso_history), self._tmagic_messagetype)
 
 
         return df_pso
