@@ -355,7 +355,7 @@ class PsoToClProcess(IProcess):
             F.col('explod_pso_orderItem.id').alias('orderitemid_ps'),
             F.col('explod_pso_orderItem.lineNumber').alias('lineNumber'),
             F.col('explod_pso_orderItem.productMaterialId').alias('productMaterialId'),
-            F.col('explod_pso_orderItem.name').alias('productnam'),
+            F.col('explod_pso_orderItem.name').alias('productname'),
             F.col('explod_pso_orderItem.itemType').alias('orderitemtype'),
             F.lit(None).alias('bdmp_loadstamp'),
             F.lit(None).alias('bdmp_id'),
@@ -373,8 +373,10 @@ class PsoToClProcess(IProcess):
     def parse_pso_history_array(self, df_in):
 
         # devlab test, 1x   acl_id = '200003137' --  20190513123845
+        #  filter((df_in['acl_id_int'] == '200003137'))
+
         # OK, no where filter
-        df_json = df_in.filter((df_in['acl_id_int'] == '200003137')).select(df_in['acl_id_int'],
+        df_json = df_in.select(df_in['acl_id_int'],
                                df_in['acl_dop_iso'],
                                df_in['acl_loadnumber_int'],
                                df_in['presalesorderid_ps'],
