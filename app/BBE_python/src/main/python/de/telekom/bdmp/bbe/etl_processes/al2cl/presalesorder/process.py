@@ -2,7 +2,7 @@
 import de.telekom.bdmp.pyfw.etl_framework.util as util
 from de.telekom.bdmp.pyfw.etl_framework.iprocess import IProcess
 from de.telekom.bdmp.pyfw.etl_framework.dfcreator import DfCreator
-from de.telekom.bdmp.bbe.common.bdmp_constants import WF_AL2CL, DB_BBE_BASE, DB_BBE_CORE
+from de.telekom.bdmp.bbe.common.bdmp_constants import WF_AL2CL, DB_BBE_BASE, DB_BBE_CORE, patern_timestamp19_zulu, time_zone_D
 
 from de.telekom.bdmp.bbe.common.tmagic_json_paths import *
 import de.telekom.bdmp.bbe.common.functions as Func
@@ -37,6 +37,8 @@ class PsoToClProcess(IProcess):
 
         self._db_out = DB_BBE_CORE
         self._out_table_name = 'cl_f_presalesorder_mt'
+        self._out_table_name_pso_orderitem  = 'cl_f_presalesorder_orderitem_mt'
+        self._out_table_name_pso_history = 'cl_f_presalesorder_history_mt'
 
         self._tmagic_messagetype = 'VVM - PreSalesOrder'
         self.max_acl_dop_val = 0
@@ -143,9 +145,9 @@ class PsoToClProcess(IProcess):
                 record_has_newer_pso__json_schema = True
                 break
 
-        patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
-        patern_timestamp19_zulu = "yyyy-MM-dd\'T\'HH:mm:ss"
-        time_zone_D="Europe/Berlin"
+        #patern_timestamp_zulu = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'"
+        #patern_timestamp19_zulu = "yyyy-MM-dd\'T\'HH:mm:ss"
+        #time_zone_D="Europe/Berlin"
 
         # new dataframe , select columns for target table , using values from json....
         # if DataFrame is empty then error occured: pyspark.sql.utils.AnalysisException: 'No such struct field number in'
@@ -283,8 +285,11 @@ class PsoToClProcess(IProcess):
             F.col('json_data.provisioningDetails.wishType').alias('wishtype'),
 
             # F.expr(), dtype will be:  array < struct.....  sourcedata for cl_f_presalesorder_orderitem_mt
-            #F.get_json_object('jsonstruct','$.items').alias('orderitems_struct'),
-            F.expr('json_data.items').alias('orderitems_struct'),
+            F.expr('json_data.items').alias('orderitems_array'),  # sourcedata for cl_f_presalesorder_orderitem_mt
+            F.get_json_object('jsonstruct', '$.items').alias('orderitems_json'),
+
+            F.expr('json_data.history').alias('history_array'),# sourcedata for cl_f_presalesorder_history_mt
+            F.get_json_object('jsonstruct', '$.history').alias('history_json'),
 
 
             F.col('bdmp_loadstamp'),
@@ -297,12 +302,14 @@ class PsoToClProcess(IProcess):
         #df_al_json.show(5, False)
         #df_al_json.printSchema()
 
+        # parse array  'orderitems_array' - json-explode do new dataframe
         df_pso_orderitems = self.parse_pso_orderitem_array(df_al_json)
-        df_pso_orderitems.show(1,True)
+
+        # parse array 'history_array' - json-explode do new dataframe
+        df_pso_history = self.parse_pso_history_array(df_al_json)
 
 
-
-        return  [df_al_json, df_pso_orderitems]
+        return  [df_al_json, df_pso_orderitems, df_pso_history]
 
     def handle_output_dfs(self, out_dfs_list: List):
         """
@@ -316,12 +323,14 @@ class PsoToClProcess(IProcess):
         # Read inputs
         df_pso = out_dfs_list[0]
         df_pso_orderitems = out_dfs_list[1]
+        df_pso_history = out_dfs_list[2]
         doing_Insert = False
 
         # if dataframe doesn't have data - skip insert to table, no new data=no insert
         if df_pso:
             spark_io.df2hive(df_pso, DB_BBE_CORE, self._out_table_name , overwrite=False)
-            spark_io.df2hive(df_pso_orderitems, DB_BBE_CORE, 'cl_f_presalesorder_orderitem_mt', overwrite=False)
+            spark_io.df2hive(df_pso_orderitems, DB_BBE_CORE, self._out_table_name_pso_orderitem, overwrite=False)
+            spark_io.df2hive(df_pso_history, DB_BBE_CORE, self._out_table_name_pso_history, overwrite=False)
             doing_Insert = True
 
         Func.update_process_tracking_table(self.spark_app.get_spark(), self._etl_process_name, \
@@ -344,13 +353,13 @@ class PsoToClProcess(IProcess):
                                df_in['acl_dop_iso'],
                                df_in['acl_loadnumber_int'],
                                df_in['presalesorderid_ps'],
-                               df_in['orderitems_struct'])
+                               df_in['orderitems_array'])
 
         #df_json = df_in.filter((df_in['acl_id_int'] == 200655) | (df_in['acl_id_int'] == 200742))\
         #    .select(df_in['acl_id_int'], df_in['orderitems_struct'])
 
 
-        df_json = df_json.withColumn('explod_pso_orderItem',F.explode("orderitems_struct"))
+        df_json = df_json.withColumn('explod_pso_orderItem',F.explode("orderitems_array"))
 
 
         df_out = df_json.select(
@@ -368,7 +377,58 @@ class PsoToClProcess(IProcess):
             F.lit(None).alias('bdmp_area_id')
         )
 
-        #df_out.show(20,False)
+        df_out.show(20,False)
+
+        ####
+        return df_out
+
+
+
+    # this function parsing/explode  history ARRAY , json_pso_orderItem
+    def parse_pso_history_array(self, df_in):
+
+        # devlab test, 1x   acl_id = '200003137' --  20190513123845
+        # OK, no where filter
+        df_json = df_in.filter((df_in['acl_id_int'] == '200003137')).select(df_in['acl_id_int'],
+                               df_in['acl_dop_iso'],
+                               df_in['acl_loadnumber_int'],
+                               df_in['presalesorderid_ps'],
+                               df_in['history_array'])
+
+        #df_json = df_in.filter((df_in['acl_id_int'] == 200655) | (df_in['acl_id_int'] == 200742))\
+        #    .select(df_in['acl_id_int'], df_in['orderitems_struct'])
+
+
+        df_json = df_json.withColumn('explod_pso_hist',F.explode("history_array"))
+
+        #  add FILTER:  '$.itemType' = 'state_transition'
+
+        df_out = df_json.select(
+            F.col('acl_id_int'),
+            F.col('acl_dop_iso'),
+            F.col('acl_loadnumber_int'),
+            F.col('presalesorderid_ps'),
+            F.col('explod_pso_hist.id').alias('historyid_ps'),
+            F.col('explod_pso_hist.itemType').alias('itemtype'),
+            #F.col('explod_pso_hist.createdAt').alias('historyTimestamp_ISO'),
+            F.to_utc_timestamp(
+                F.to_timestamp(
+                F.col('explod_pso_hist.createdAt')[0:19], patern_timestamp19_zulu), time_zone_D)
+                .alias('historyTimestamp_ISO'),
+
+            # -- State transition
+            F.col('explod_pso_hist.payload.data.from').alias('oldstate'),
+            F.col('explod_pso_hist.payload.data.to').alias('newstate'),
+
+            F.lit(None).alias('item_json'),
+            F.lit(None).alias('jsonstruct'),
+
+            F.lit(None).alias('bdmp_loadstamp'),
+            F.lit(None).alias('bdmp_id'),
+            F.lit(None).alias('bdmp_area_id')
+        )
+
+        df_out.show(20,False)
 
         ####
         return df_out
