@@ -24,9 +24,21 @@
             </property>
         </configuration>
     </global>
-    <start to="act_vvmarea"/>
+    <start to="act_pso_latestversion"/>
 
 
+    <action name="act_pso_latestversion">
+        <python xmlns="uri:oozie:bdmp-python-action:0.1">
+            <bdmp-scripts>${bdmpScripts}</bdmp-scripts>
+            <script>de/telekom/bdmp/bbe/etl_processes/al2cl/pso_latestversion/main.py</script>
+            <debug-sleep-begin>0</debug-sleep-begin>
+            <debug-sleep-end>0</debug-sleep-end>
+            <log-level>DEBUG</log-level>
+            <capture-output/>
+        </python>
+        <ok to="act_vvmarea"/>
+        <error to="kill"/>
+    </action>
 
 
     <action name="act_vvmarea">

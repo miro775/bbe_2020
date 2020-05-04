@@ -60,20 +60,10 @@ class Pso_Latest_ToClProcess(IProcess):
 
     def logic(self, in_dfs):
         """
-        Logic of the whole process,  PSO
+        Logic of the whole process,  PSO latest version
         """
 
-
         df_input = in_dfs
-
-
-
-        # analyse JSON schema "read.json()" (struct) from all specific messages , filter  messagetype
-        # json_schema_full=DataFrame, json_schema_full.schema' as StructType
-        df_these_messagetype_all = df_input.filter((df_input['messagetype'] == self._tmagic_messagetype) \
-                                                 & (df_input['Messageversion'] == '1'))
-        json_schema_full = self.spark_app.get_spark().read.json(df_these_messagetype_all.rdd.map(lambda row: row.jsonstruct))
-        #json_schema_full.printSchema()  # debug only
 
 
         # filter "PSO" only messages, only uprocessed records (alc_dop from : process-tracking-table)
@@ -82,13 +72,16 @@ class Pso_Latest_ToClProcess(IProcess):
                                       & (df_input['Messageversion'] == '1'))
 
 
+        # analyse JSON schema "read.json()" (struct) from all specific messages , filter  messagetype
+        # json_schema_full=DataFrame, json_schema_full.schema' as StructType
+        json_schema_full = self.spark_app.get_spark().read.json(df_al.rdd.map(lambda row: row.jsonstruct))
+        #json_schema_full.printSchema()  # debug only
 
 
         self.new_records_count = df_al.count()
 
         # compute max value of acl_dop - needed for next transformation
         self.max_acl_dop_val = df_al.agg(F.max(df_al['acl_dop']).alias('max')).collect()[0][0]
-
 
 
         self.log.debug('### logic of process \'{0}\' started, all_PSO_records_count={1}'.\
@@ -121,6 +114,24 @@ class Pso_Latest_ToClProcess(IProcess):
         #df_al_json.show(5, False)
         #df_al_json.printSchema()
 
+
+        '''
+        # logic from HQL:  IL2AL_PreSalesOrder_latest_version
+        
+        rankedEvents AS
+        (
+          select *, 
+          ROW_NUMBER() OVER  (PARTITION BY preSalesOrderId_ps ORDER BY modification_date DESC, acl_ID_int desc, acl_DOP desc) 
+          AS rnk
+          from extractedEvents
+        )
+        select * from rankedEvents
+        where rnk = 1
+        
+        
+        '''
+
+        # JSONSTRUCT is empty, OK
         df_al_json = df_al_json.select(
             F.col('acl_id_int'),
             F.col('acl_dop'),
@@ -152,7 +163,6 @@ class Pso_Latest_ToClProcess(IProcess):
         Stores result data frames to output Hive tables
         """
 
-        #return None   # skip INSERT,  debug only, devlab
 
         spark_io = util.ISparkIO.get_obj(self.spark_app.get_spark())
 
@@ -171,8 +181,6 @@ class Pso_Latest_ToClProcess(IProcess):
         Func.bbe_process_log_table(self.spark_app.get_spark(),WF_AL2CL, self._etl_process_name,'INFO',
                                    'end of process','insert table={0} ,overwrite'. \
                                    format(self._out_table_name),self._tmagic_messagetype)
-
-
 
 
         return df_pso
