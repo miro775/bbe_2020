@@ -49,33 +49,76 @@ json_schema_full = spark0.read.json(df_these_messagetype_all.rdd.map(lambda row:
 df_al = df_input.filter((df_input['messagetype'] == _tmagic_messagetype) \
                         & (df_input['Messageversion'] == '1'))
 
+# parse data from JSON
 df_al_json = df_al.withColumn('json_data', F.from_json(F.col('jsonstruct'), json_schema_full.schema)) \
     .select(
     F.col('acl_id').alias('acl_id_int'),
+    F.col('acl_dop').alias('acl_dop'),
     F.to_timestamp(F.col('acl_DOP'), 'yyyyMMddHHmmss').alias('acl_dop_ISO'),
     F.col('acl_loadnumber').alias('acl_loadnumber_int'),
-    F.col('messageversion'),
+    F.col('messagetype').alias('messagetype'),
+    F.col('messageversion').alias('messageversion'),
 
     F.col('json_data.id').alias('presalesorderid_ps'),
-
+    F.col('json_data.lastModifiedAt').alias('modification_date'),
 
     # truncate first 19chars like:  '2019-06-24T09:46:54'
-    F.to_utc_timestamp(F.to_timestamp(F.col('json_data.createdAt')[0:19], patern_timestamp19_zulu), time_zone_D)
-        .alias('createdat_iso'),
     F.to_utc_timestamp(F.to_timestamp(F.col('json_data.lastModifiedAt')[0:19], patern_timestamp19_zulu),
-                       time_zone_D).alias('lastmodifiedat_iso')
+                       time_zone_D).alias('lastmodifiedat_iso'),
+    F.lit(None).alias('jsonstruct'),
+
 )
+
+
+'''
+
+rankedEvents AS
+(
+select *, 
+       ROW_NUMBER() OVER  (PARTITION BY preSalesOrderId_ps ORDER BY modification_date DESC, acl_ID_int desc, acl_DOP desc) AS rnk
+from extractedEvents
+)
+select * from rankedEvents
+where rnk = 1
+
+
+
+'''
 
 #df_al_json.show(5,False)
 
+# test data, devlab, 1x PSO_ID
 df_al_json = df_al_json.filter(df_al_json['presalesorderid_ps'] == 'P-J$s5!ebL${dtu@hUS')
 df_al_json.show(20,False)
 
+# "rnk" == "1" ,  otherwise TypeError: condition should be string or Column
+
 df_al_json = df_al_json.select(
-    "acl_id_int","acl_dop_ISO","lastmodifiedat_iso",
-     F.row_number().over(
-    Window.partitionBy("presalesorderid_ps").orderBy(F.col("lastmodifiedat_iso").desc())).alias("row_numb")
+    F.col('acl_id_int'),
+    F.col('acl_dop'),
+    F.col('acl_dop_ISO'),
+    F.col('acl_loadnumber_int'),
+    F.col('messagetype'),
+    F.col('messageversion'),
+    F.col('presalesorderid_ps'),
+    F.col('modification_date'),
+    F.col('lastmodifiedat_iso'),
+    F.col('jsonstruct'),
+    F.row_number().over(
+    Window.partitionBy("presalesorderid_ps").orderBy(F.col("lastmodifiedat_iso").desc(),
+                                                     F.col("acl_id_int").desc(),
+                                                     F.col("acl_dop").desc())
+    ).alias("rnk"),
+    F.lit(None).alias('bdmp_loadstamp'),
+    F.lit(None).alias('bdmp_id'),
+    F.lit(None).alias('bdmp_area_id')
 
 )
 
+df_al_json = df_al_json.filter(df_al_json['rnk'] == '1')
+
 df_al_json.show(20,False)
+
+
+# target:   db_d172_bbe_core_iws.cl_f_presalesorder_latestversion_mt
+df_al_json.write.insertInto('db_d172_bbe_core_iws.cl_f_presalesorder_latestversion_mt', overwrite=True)
