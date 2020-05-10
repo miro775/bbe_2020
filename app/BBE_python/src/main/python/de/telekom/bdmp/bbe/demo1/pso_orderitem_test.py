@@ -23,11 +23,37 @@ spark0 = SparkSession \
 
 df_input = spark0.sql("select * from  {0}".format(input_gigabit_table))
 
+# this test MUST work FINE anytime, 2x acl_id, 200655 + 200742  -  To-DO!
 df_al = df_input.filter((df_input['acl_id_int'] == 200655) | (df_input['acl_id_int'] == 200742))
 
+# df_al = df_input.filter((df_input['acl_id_int'] == 200655) )
+
 json_schema_reduced = spark0.read.json(
-    df_al.rdd.map(lambda row: row.orderitems_json))
+    df_input.rdd.map(lambda row: row.orderitems_json))  # read ALL records from source table? df_input instead of df_al
+
 json_schema_reduced.printSchema()  # debug only
+
+'''
+
+root
+ |-- conditions: array (nullable = true)
+ |    |-- element: struct (containsNull = true)
+ |    |    |-- conditionType: string (nullable = true)
+ |    |    |-- id: long (nullable = true)
+ |    |    |-- invoiceText: string (nullable = true)
+ |    |    |-- orderItemId: long (nullable = true)
+ |    |    |-- performProcessing: boolean (nullable = true)
+ |    |    |-- price: string (nullable = true)
+ |    |    |-- telekomConditionId: string (nullable = true)
+ |-- id: string (nullable = true)
+ |-- itemType: string (nullable = true)
+ |-- name: string (nullable = true)
+ |-- orderId: string (nullable = true)
+ |-- performProcessing: boolean (nullable = true)
+ |-- pricingDate: string (nullable = true)
+ |-- productMaterialId: string (nullable = true)
+
+'''
 
 
 
@@ -87,6 +113,30 @@ df_al_json2.show(2, False)
 
 
 '''
+
+
+# test,  extract first [] ??  'json_data.id[0]' -<<  ERROR  No such struct field id[0]
+df_al_json3 = df_al.withColumn('json_data', F.from_json(F.col('orderitems_json'), json_schema_reduced.schema)) \
+    .select(
+    F.col('acl_id_int'),
+    F.col('json_data.id') ,
+    F.col('json_data.name'),  F.col('json_data.itemType'),
+    F.col('json_data.orderId'),  F.col('json_data.productMaterialId'))
+df_al_json3.show(2, False)
+
+'''
+
++----------+-----+--------------------------------+--------+-------------------+-----------------+
+|acl_id_int|id   |name                            |itemType|orderId            |productMaterialId|
++----------+-----+--------------------------------+--------+-------------------+-----------------+
+|200655    |null |null                            |null    |null               |null             |
+|200742    |PoH{S|MagentaZuhause XXL mit MagentaTV|service |P&${WjZqiN`L6SjljmS|89987868         |
++----------+-----+--------------------------------+--------+-------------------+-----------------+
+
+'''
+
+
+
 
 df_al_json2.printSchema()
 
