@@ -164,6 +164,90 @@ root
 '''
 
 
+#  regexp_replace(get_json_object(org.JsonStruct, '$.items'), '^\\[|\\]$', '')
+# -- remove '[' at the beginning and remove ']' at the end
+
+df_al_json4 = df_al.withColumn('json_data',
+                               F.from_json(
+                                   F.regexp_replace(F.col('orderitems_json'), '^\\[|\\]$' , '')
+                                   , json_schema_reduced.schema )
+                               ) \
+    .select("json_data.*")
+df_al_json4.show(2, False)
+
+'''
+# OK, this work: regexp_replace(F.col('orderitems_json'), '^\\[|\\]$' 
+# remove array[] , "wrapper-array" ,  ok some progress,,,,
++--------------------------------------------------------------------------------------------------------------------------------------------+-----+--------+----------+----------------+------------------+--------------------------------+----------------+------------------+-------------------+-----------------+-----------+-----------------+
+|conditions                                                                                                                                  |id   |itemType|lineNumber|monthlyCondition|monthlyConditionId|name                            |oneTimeCondition|oneTimeConditionId|orderId            |performProcessing|pricingDate|productMaterialId|
++--------------------------------------------------------------------------------------------------------------------------------------------+-----+--------+----------+----------------+------------------+--------------------------------+----------------+------------------+-------------------+-----------------+-----------+-----------------+
+|[[ZK01, 633,, 352, true, 0.00, 1001111111,,], [ZC02, 634,, 352, true, 119.95, 1001458452,,]]                                                |Pg3äS|service |null      |null            |null              |MagentaZuhause Giga             |null            |null              |P!rk~ß$ü+KÄGRgJy85S|true             |2019-08-29 |89930562         |
+|[[ZK01, 1492, MagentaZuhause XXL mit, 730, true, 69.95, 1001328737,,], [ZK02, 1493, MagentaZuhause XXL mit, 730, true, 79.95, 1001363672,,]]|PoH{S|service |null      |null            |null              |MagentaZuhause XXL mit MagentaTV|null            |null              |P&${WjZqiN`L6SjljmS|true             |2020-03-17 |89987868         |
++--------------------------------------------------------------------------------------------------------------------------------------------+-----+--------+----------+----------------+------------------+--------------------------------+----------------+------------------+-------------------+-----------------+-----------+-----------------+
+
+'''
+
+
+
+
+
+df_al_json5 = df_al.withColumn('json_data',
+                               F.from_json(
+                                   F.regexp_replace(F.col('orderitems_json'), '^\\[|\\]$' , '')
+                                   , json_schema_reduced.schema )
+                               ) \
+    .select(
+    F.col('acl_id_int'),
+    F.col('json_data.id'),
+    F.col('json_data.name'),
+    F.col('json_data.itemType'),
+    F.col('json_data.orderId'),
+    F.col('json_data.productMaterialId'))
+df_al_json5.show(10, False)
+
+'''
++----------+-----+--------------------------------+--------+-------------------+-----------------+
+|acl_id_int|id   |name                            |itemType|orderId            |productMaterialId|
++----------+-----+--------------------------------+--------+-------------------+-----------------+
+|200655    |Pg3äS|MagentaZuhause Giga             |service |P!rk~ß$ü+KÄGRgJy85S|89930562         |
+|200742    |PoH{S|MagentaZuhause XXL mit MagentaTV|service |P&${WjZqiN`L6SjljmS|89987868         |
++----------+-----+--------------------------------+--------+-------------------+-----------------+
+'''
+
+
+#
+# explode:  Returns a new row for each element in the given array or map.
+#
+# cannot resolve 'explode(regexp_replace(cl_f_presalesorder_mt.`orderitems_json`, '^\\[|\\]$', ''))'
+# due to data type mismatch: input to function explode should be array or map type, not string
+
+#
+'''
+sql.utils.AnalysisException: "cannot resolve 'explode(jsontostructs(regexp_replace(cl_f_presalesorder_mt.`orderitems_json`, '^\\\\[|\\\\]$', '')))' 
+due to data type mismatch: input to function explode should be array or map type, not struct<conditions:array<struct<conditionType:string,id:bigint,invoiceText:string,orderItemId:bigint,performProcessing:boolean,
+>> toto  nefunguje:
+
+
+df_al_json6 = df_al.withColumn('json_explod_data',
+                               F.explode(
+                                   F.from_json(
+                                        F.regexp_replace(F.col('orderitems_json'), '^\\[|\\]$' , '')
+                                       , json_schema_reduced.schema
+                                   )
+                                   )
+                               ) \
+    .select(
+    F.col('acl_id_int'),
+    F.col('json_explod_data.id'),
+    F.col('json_explod_data.name'),
+    F.col('json_explod_data.itemType'),
+    F.col('json_explod_data.orderId'),
+    F.col('json_explod_data.productMaterialId'))
+df_al_json6.show(10, False)
+
+'''
+
+
 
 
 
